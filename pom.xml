@@ -55,17 +55,19 @@
 
     <dependency>
       <groupId>org.sonarsource.sonarqube</groupId>
-      <artifactId>sonar-db-dao</artifactId>
-      <version>7.2.1</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.sonarsource.sonarqube</groupId>
       <artifactId>sonar-testing-harness</artifactId>
       <version>${sonar.testingHarnessVersion}</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>sonarqube</groupId>
+      <artifactId>sonar-source</artifactId>
+      <version>24.12.0.100206</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/sonar-application-24.12.0.100206.jar</systemPath>
+    </dependency>
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -83,7 +85,7 @@
         <extensions>true</extensions>
         <configuration>
           <pluginKey>example</pluginKey>
-          <pluginClass>org.perpectiveteam.plugins.ExamplePlugin</pluginClass>
+          <pluginClass>org.perpectiveteam.plugins.aisummarize.AiSummarizePluginBootstrap</pluginClass>
           <!-- Optional, only if you are sure to support older versions of the plugin API than the one you are compiling against -->
           <pluginApiMinVersion>9.9</pluginApiMinVersion>
         </configuration>

@@ -1,7 +1,7 @@
-package org.perpectiveteam.plugins.pullrequest;
+package org.perpectiveteam.plugins.aisummarize.pullrequest;
 
 
-import org.perpectiveteam.plugins.pullrequest.dtobuilder.LineChange;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.LineChange;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,7 @@ public class PatchParser {
             } else if (line.startsWith("-") && !line.startsWith("---")) {
                 changes.add(new LineChange(-1, -1, "REMOVED", line.substring(1)));
             } else {
-                // context line or metadata, can ignore for now
+                //TODO: context line or metadata, can ignore for now
             }
         }
         return changes;

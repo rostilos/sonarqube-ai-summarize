@@ -1,4 +1,4 @@
-package org.perpectiveteam.plugins.pullrequest.dtobuilder;
+package org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder;
 
 import java.util.List;
 
