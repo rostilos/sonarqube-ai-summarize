@@ -1,54 +1,40 @@
 package org.perpectiveteam.plugins.aisummarize.pullrequest.almclient;
 
 import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.github.GitHubClientFactory;
 import org.sonar.api.ce.ComputeEngineSide;
-import org.sonar.api.config.internal.Settings;
 import org.sonar.api.server.ServerSide;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
 import org.sonar.db.alm.setting.AlmSettingDto;
 import org.sonar.db.alm.setting.ALM;
+import org.sonar.db.alm.setting.ProjectAlmSettingDto;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @ServerSide
 @ComputeEngineSide
 public class ALMClientFactory {
-    private static final Logger LOG = Loggers.get(ALMClientFactory.class);
-
+    //TODO: log issues
+    //private static final Logger LOG = Loggers.get(ALMClientFactory.class);
     private final AiSummarizeConfig config;
-    private final Settings settings;
-
-    public ALMClientFactory(AiSummarizeConfig config, Settings settings) {
-        this.settings = settings;
+    @Autowired
+    public ALMClientFactory(List<ALMClientFactoryDelegate> delegates, AiSummarizeConfig config) {
+        this.delegateMap = delegates.stream().collect(Collectors.toMap(ALMClientFactoryDelegate::getAlm, d -> d));
         this.config = config;
     }
 
-    public ALMClient createGitHubClient(AlmSettingDto almSettingDto) {
-        String token = almSettingDto.getDecryptedClientSecret(settings.getEncryption());
-        if (token.isEmpty()) {
-            LOG.error("GitHub token is not configured. Please set the {} property.");
-            throw new IllegalStateException("GitHub token is not configured");
-        }
 
-        //TODO: get target branch from PR data
-        return new GitHubClientFactory(
-                token,
-                config.getDefaultTargetBranch(),
-                config.getFileLimit()
-        );
-    }
+    private final Map<ALM, ALMClientFactoryDelegate> delegateMap;
 
-    public ALMClient createClient(String currentAlmId, AlmSettingDto almSettingDto) {
+    public ALMClient createClient(String currentAlmId, AlmSettingDto almSettingDto, ProjectAlmSettingDto projectAlmSettingDto) throws IOException {
         ALM alm = ALM.fromId(currentAlmId);
-
-        switch (alm) {
-            case GITHUB:
-                return createGitHubClient(almSettingDto);
-            case GITLAB:
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported ALM: " + currentAlmId);
+        int fileLimit = config.getFileLimit();
+        ALMClientFactoryDelegate delegate = delegateMap.get(alm);
+        if (delegate == null) {
+            throw new IllegalArgumentException("No factory for ALM: " + currentAlmId);
         }
-        return null;
+        return delegate.createClient(almSettingDto, projectAlmSettingDto, fileLimit);
     }
 }

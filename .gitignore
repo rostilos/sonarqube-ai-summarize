@@ -1,6 +1,5 @@
 node_modules
 .DS_Store
-target/
 node/
 .idea/
 sonar-example-plugin.iml
@@ -18,3 +17,5 @@ sonar-example-plugin.iml
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+target/*
+!target/classes

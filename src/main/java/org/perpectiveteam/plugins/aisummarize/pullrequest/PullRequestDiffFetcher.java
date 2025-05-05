@@ -17,9 +17,9 @@ public class PullRequestDiffFetcher {
         this.almClient = almClient;
     }
 
-    public PullRequestDiff fetchDiff(String repoOwner, String repoName, String pullRequestNumber) {
-        LOG.info("Fetching PR diff for {}/{} PR #{}", repoOwner, repoName, pullRequestNumber);
-        List<FileDiff> files = almClient.fetchPullRequestFiles(repoOwner, repoName, pullRequestNumber);
+    public PullRequestDiff fetchDiff(String pullRequestNumber) {
+        LOG.info("Fetching PR diff for PR #{}", pullRequestNumber);
+        List<FileDiff> files = almClient.fetchPullRequestFilesDiff(pullRequestNumber);
         LOG.info("Fetched {} files from PR", files.size());
 
         PullRequestDiff diff = new PullRequestDiff();
