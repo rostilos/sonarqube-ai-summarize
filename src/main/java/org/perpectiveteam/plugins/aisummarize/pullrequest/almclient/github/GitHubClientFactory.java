@@ -1,133 +1,156 @@
 package org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.github;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.io.StringReader;
+import java.security.PrivateKey;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.function.Supplier;
 
-import org.perpectiveteam.plugins.aisummarize.pullrequest.PatchParser;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.FileDiff;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.impl.DefaultJwtBuilder;
+import okhttp3.OkHttpClient;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.kohsuke.github.GHAppInstallationToken;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactoryDelegate;
+import org.sonar.api.ce.ComputeEngineSide;
+import org.sonar.api.server.ServerSide;
 import org.sonar.db.alm.setting.ALM;
+import org.sonar.db.alm.setting.AlmSettingDto;
+import org.sonar.db.alm.setting.ProjectAlmSettingDto;
+import org.sonar.api.config.internal.Settings;
+import org.springframework.beans.factory.annotation.Autowired;
 
-public class GitHubClientFactory implements ALMClient {
-    private static final Logger LOG = Loggers.get(GitHubClientFactory.class);
-    private static final String PROVIDER_NAME = "github";
-    
-    private final String githubToken;
-    private final String targetBranch;
-    private final int fileLimit;
+@ServerSide
+@ComputeEngineSide
+public class GitHubClientFactory implements ALMClientFactoryDelegate {
+    private final Clock clock;
+    private final Supplier<GitHubBuilder> gitHubBuilderSupplier;
+    private final Settings settings;
 
-    public GitHubClientFactory(String githubToken, String targetBranch, int fileLimit) {
-        this.githubToken = githubToken;
-        this.targetBranch = targetBranch;
-        this.fileLimit = fileLimit;
+    @Autowired
+    public GitHubClientFactory(Clock clock, Settings settings) {
+        this(clock, settings, GitHubBuilder::new);
+    }
+
+    GitHubClientFactory(
+            Clock clock,
+            Settings settings,
+            Supplier<GitHubBuilder> gitHubBuilderSupplier
+    ) {
+        this.clock = clock;
+        this.settings = settings;
+        this.gitHubBuilderSupplier = gitHubBuilderSupplier;
     }
 
     @Override
-    public List<FileDiff> fetchPullRequestFiles(String owner, String repo, String pullRequestNumber) {
-        List<FileDiff> fileDiffs = new ArrayList<>();
-        try {
-            String apiUrl = String.format("https://api.github.com/repos/%s/%s/pulls/%s/files", owner, repo, pullRequestNumber);
-            URL url = new URL(apiUrl);
+    public ALM getAlm() {
+        return ALM.GITHUB;
+    }
 
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("Authorization", "token " + this.githubToken);
-            conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+    @Override
+    public GitHubClient createClient(AlmSettingDto almSettings, ProjectAlmSettingDto projectSettings, int fileLimit) throws IOException {
+        String almRepo = projectSettings.getAlmRepo();
+        String[] parts = almRepo.split("/");
 
-            try (InputStream in = conn.getInputStream()) {
-                ObjectMapper mapper = new ObjectMapper();
-                int responseCode = conn.getResponseCode();
-                if (responseCode != HttpURLConnection.HTTP_OK) {
-                    try (InputStream errorStream = conn.getErrorStream()) {
-                        String error = new String(errorStream.readAllBytes());
-                        LOG.error("GitHub API error ({}): {}", responseCode, error);
-                        throw new RuntimeException("GitHub API error (" + responseCode + "): " + error);
-                    }
-                }
-                JsonNode root = mapper.readTree(in);
+        String repoOwner = parts[0];
+        String repoName = parts[1];
 
-                int fileCount = 0;
-                for (JsonNode fileNode : root) {
-                    // Check if we've reached the file limit
-                    if (fileLimit > 0 && fileCount >= fileLimit) {
-                        LOG.info("Reached file limit of {}. Skipping remaining files.", fileLimit);
-                        break;
-                    }
-                    
-                    FileDiff fileDiff = new FileDiff();
-                    fileDiff.filePath = fileNode.get("filename").asText();
-                    fileDiff.diffType = fileNode.get("status").asText();
-                    if ("removed".equals(fileDiff.diffType)) {
-                        LOG.info("Skipping deleted file: {}", fileDiff.filePath);
-                        continue;
-                    }
-                    fileDiff.changes = new ArrayList<>();
+        validateSettings(almSettings, projectSettings);
+        String token = generateAuthToken(almSettings, projectSettings);
 
-                    String patch = fileNode.get("patch") != null ? fileNode.get("patch").asText() : null;
-                    if (patch != null) {
-                        fileDiff.changes = PatchParser.parsePatch(patch);
-                    }
+        return new GitHubClient(token, fileLimit, repoOwner, repoName);
+    }
 
-                    fileDiff.sha = fileNode.get("sha").asText();
-                    fileDiff.rawContent = fetchFileContent(owner, repo, this.targetBranch, fileDiff.filePath);
-                    fileDiffs.add(fileDiff);
-                    fileCount++;
-                }
-            }
-        } catch (Exception e) {
-            LOG.error("Error fetching PR diff from GitHub", e);
-            throw new RuntimeException("Error fetching PR diff from GitHub", e);
+    private void validateSettings(AlmSettingDto almSettings, ProjectAlmSettingDto projectSettings) {
+        if (almSettings.getUrl() == null) {
+            throw new IllegalArgumentException("No URL has been set for GitHub connections");
         }
-        return fileDiffs;
+        if (almSettings.getDecryptedPrivateKey(settings.getEncryption()) == null) {
+            throw new IllegalArgumentException("No private key has been set for GitHub connections");
+        }
+        if (almSettings.getAppId() == null) {
+            throw new IllegalArgumentException("No App ID has been set for GitHub connections");
+        }
+        if (projectSettings.getAlmRepo() == null) {
+            throw new IllegalArgumentException("No repository name has been set for GitHub connections");
+        }
+        if (!projectSettings.getAlmRepo().contains("/")) {
+            throw new IllegalArgumentException("Repository name must be in the format 'owner/repo'");
+        }
     }
 
-    @Override
-    public List<ALM> alm() {
-        return Collections.singletonList(ALM.GITHUB);
-    }
-
-    //TODO: not sure, maybe we should retrieve it from SQ DB
-    private String fetchFileContent(String owner, String repo, String ref, String path) {
+    private String generateAuthToken(AlmSettingDto almSettings, ProjectAlmSettingDto projectSettings) throws IOException {
         try {
-            String encodedPath = path.replace(" ", "%20");
-            String contentUrl = String.format("https://api.github.com/repos/%s/%s/contents/%s?ref=%s",
-                    owner, repo, encodedPath, ref);
-            URL url = new URL(contentUrl);
+            RepositoryCoordinates repoCoords = parseRepositoryPath(projectSettings.getAlmRepo());
+            String jwtToken = createJwtToken(almSettings.getAppId(),
+                    almSettings.getDecryptedPrivateKey(settings.getEncryption()));
 
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("Authorization", "token " + this.githubToken);
-            conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+            GitHub tempGitHub = gitHubBuilderSupplier.get()
+                    .withEndpoint(almSettings.getUrl())
+                    .withConnector(createConnector())
+                    .withJwtToken(jwtToken)
+                    .build();
 
-            try (InputStream in = conn.getInputStream()) {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode root = mapper.readTree(in);
-                String contentBase64 = root.get("content").asText();
-                String clean = contentBase64.replaceAll("[^A-Za-z0-9+/=]", "");
-                return new String(java.util.Base64.getDecoder().decode(clean), StandardCharsets.UTF_8);
+            GHAppInstallationToken installationToken = tempGitHub.getApp()
+                    .getInstallationByRepository(repoCoords.owner, repoCoords.repo)
+                    .createToken()
+                    .create();
+
+            return installationToken.getToken();
+        } catch (IOException ex) {
+            throw new IOException("Failed to authenticate with GitHub: " + ex.getMessage(), ex);
+        }
+    }
+
+    private String createJwtToken(String appId, String privateKeyPem) {
+        Instant issuedAt = clock.instant().minus(10, ChronoUnit.SECONDS);
+        Instant expiresAt = issuedAt.plus(2, ChronoUnit.MINUTES);
+
+        return new DefaultJwtBuilder()
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(expiresAt))
+                .claim("iss", appId)
+                .signWith(parsePrivateKey(privateKeyPem), Jwts.SIG.RS256)
+                .compact();
+    }
+
+    private PrivateKey parsePrivateKey(String privateKeyPem) {
+        try (PEMParser pemParser = new PEMParser(new StringReader(privateKeyPem))) {
+            Object object = pemParser.readObject();
+            if (object == null) {
+                throw new IllegalArgumentException("Private key could not be parsed");
             }
+            PEMKeyPair keyPair = (PEMKeyPair) object;
+            return new JcaPEMKeyConverter().getPrivateKey(keyPair.getPrivateKeyInfo());
         } catch (IOException e) {
-            LOG.error("Error fetching file content from GitHub", e);
-            throw new RuntimeException("Error fetching file content from GitHub", e);
+            throw new IllegalArgumentException("Failed to parse private key", e);
         }
     }
 
-    @Override
-    public String getProviderName() {
-        return PROVIDER_NAME;
+    private OkHttpGitHubConnector createConnector() {
+        return new OkHttpGitHubConnector(new OkHttpClient());
     }
-    
-    @Override
-    public String getDefaultTargetBranch() {
-        return targetBranch;
+
+    private RepositoryCoordinates parseRepositoryPath(String path) {
+        String[] parts = path.split("/", 2);
+        return new RepositoryCoordinates(parts[0], parts[1]);
+    }
+
+    private static class RepositoryCoordinates {
+        final String owner;
+        final String repo;
+
+        RepositoryCoordinates(String owner, String repo) {
+            this.owner = owner;
+            this.repo = repo;
+        }
     }
 }

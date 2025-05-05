@@ -6,6 +6,7 @@ import java.util.List;
 import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
 import org.perpectiveteam.plugins.aisummarize.hooks.PostJobInScanner;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactory;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.github.GitHubClientFactory;
 import org.sonar.api.Plugin;
 import org.sonar.api.PropertyType;
 import org.sonar.api.SonarQubeSide;
@@ -34,22 +35,13 @@ public class AiSummarizePlugin implements Plugin, CoreExtension {
         context.addExtensions(getExtensions());
     }
 
+    //TODO: split extensions by scope ( ce, server, scanner )
     private List<Object> getExtensions() {
         return Arrays.asList(
                 AiSummarizeConfig.class,
                 ALMClientFactory.class,
                 PostJobInScanner.class,
-
-                //TODO: get target branch from PR data
-                PropertyDefinition.builder(AiSummarizeConfig.DEFAULT_TARGET_BRANCH)
-                        .name("Default Target Branch")
-                        .description("Default target branch for GitHub repositories")
-                        .category(CATEGORY)
-                        .subCategory(SUBCATEGORY_GITHUB)
-                        .defaultValue("main")
-                        .onQualifiers(Qualifiers.PROJECT)
-                        .index(2)
-                        .build(),
+                GitHubClientFactory.class,
 
                 PropertyDefinition.builder(AiSummarizeConfig.FILE_LIMIT)
                         .name("File Limit")

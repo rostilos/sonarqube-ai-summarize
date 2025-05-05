@@ -12,10 +12,12 @@ public class AIPromptBuilder {
 
     public String buildPrompt(List<FileDiff> fileDiffs) {
         //TODO: include SQ issues
+        //TODO: Allow to define prompt and enabled data from the admin panel (e.g. by templating).
         LOG.info("Building AI prompt for {} files", fileDiffs.size());
         StringBuilder sb = new StringBuilder();
         sb.append("Analyze the following code changes across multiple files.\n");
-        sb.append("For each file, summarize the change, explain the intent, and identify any potential risks.\n\n");
+        sb.append("For each file, summarize the change, explain the intent, and identify any potential risks.Keep in mind the peculiarities of Magento 2 platform.\n");
+        sb.append("Provide a summary in markdown markup.\n");
 
         int validFileCount = 0;
         for (FileDiff fileDiff : fileDiffs) {
@@ -49,6 +51,7 @@ public class AIPromptBuilder {
         return sb.toString();
     }
 
+    //TODO: Allow to define prompt and enabled data from the admin panel (e.g. by templating).
     public String buildPromptWithContext(List<FileDiff> fileDiffs, String additionalContext) {
         String basePrompt = buildPrompt(fileDiffs);
         StringBuilder sb = new StringBuilder(basePrompt);
