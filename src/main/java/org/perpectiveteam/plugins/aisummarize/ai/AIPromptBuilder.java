@@ -3,7 +3,6 @@ package org.perpectiveteam.plugins.aisummarize.ai;
 import java.util.List;
 
 import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.FileDiff;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.LineChange;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
@@ -15,13 +14,23 @@ public class AIPromptBuilder {
         //TODO: Allow to define prompt and enabled data from the admin panel (e.g. by templating).
         LOG.info("Building AI prompt for {} files", fileDiffs.size());
         StringBuilder sb = new StringBuilder();
-        sb.append("Analyze the following code changes across multiple files.\n");
-        sb.append("For each file, summarize the change, explain the intent, and identify any potential risks.Keep in mind the peculiarities of Magento 2 platform.\n");
+        sb.append("Please review the following code below:\n");
+        sb.append("Consider:\n" +
+                "1. Code quality and adherence to best practices\n" +
+                "2. Potential bugs or edge cases\n" +
+                "3. Performance optimizations\n" +
+                "4. Readability and maintainability\n" +
+                "5. Any security concerns\n" +
+                "Suggest improvements and explain your reasoning for each suggestion.\n.");
         sb.append("Provide a summary in markdown markup.\n");
 
         int validFileCount = 0;
         for (FileDiff fileDiff : fileDiffs) {
-            if (fileDiff.filePath.isEmpty() || fileDiff.rawContent.isEmpty() || fileDiff.changes.isEmpty()) {
+            if(fileDiff.rawContent == null || fileDiff.filePath.isEmpty() || fileDiff.rawContent.isEmpty()) {
+                fileDiff.rawContent = "There is no previous version, probably a new file";
+                LOG.debug("Missing previous file version for: " + fileDiff.filePath);
+            }
+            if (fileDiff.filePath.isEmpty() || fileDiff.changes.isEmpty()) {
                 LOG.debug("Skipping file with missing data: {}", fileDiff.filePath);
                 continue;
             }
@@ -34,14 +43,9 @@ public class AIPromptBuilder {
             sb.append(fileDiff.rawContent).append("\n");
             sb.append("-----\n\n");
 
-            sb.append("Diff:\n");
+            sb.append("Patch:\n");
             sb.append("-----\n");
-            for (LineChange change : fileDiff.changes) {
-                sb.append("old line: ").append(change.oldLineNumber)
-                  .append(" new line: ").append(change.newLineNumber)
-                  .append(" ").append(change.type)
-                  .append(": ").append(change.content).append("\n");
-            }
+            sb.append(fileDiff.changes).append("\n");
             sb.append("-----\n\n");
         }
 

@@ -44,7 +44,7 @@ public class OpenAIConnector implements AIConnector {
 
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode payload = mapper.createObjectNode();
-            payload.put("model", "nvidia/llama-3.1-nemotron-ultra-253b-v1:free");
+            payload.put("model", "deepseek/deepseek-prover-v2:free");
             payload.put("temperature", 0.7);
 
             ArrayNode messages = payload.putArray("messages");

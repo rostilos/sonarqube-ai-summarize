@@ -3,12 +3,10 @@ package org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.github;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONObject;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.PatchParser;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.FileDiff;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
-import org.sonar.db.alm.setting.ALM;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,33 +26,35 @@ public class GitHubClient implements ALMClient {
     private final int fileLimit;
     private final String repoOwner;
     private final String repoName;
+    private final String prNumber;
 
     public GitHubClient(
             String githubToken,
             int fileLimit,
             String repoOwner,
-            String repoName
+            String repoName,
+            String prNumber
     ) {
         this.githubToken = githubToken;
         this.fileLimit = fileLimit;
         this.repoOwner = repoOwner;
         this.repoName = repoName;
+        this.prNumber = prNumber;
     }
 
-    //TODO: MVP DRY-violation
-    //TODO:  refactor it ( maybe fetch diff, not every single file, but in that case there will be no sources left ).
+    //TODO: MVP DRY-violation ( request builder, OkHttpClient, etc. )
     @Override
-    public List<FileDiff> fetchPullRequestFilesDiff(String pullRequestNumber) {
+    public List<FileDiff> fetchPullRequestFilesDiff() throws IOException {
         List<FileDiff> fileDiffs = new ArrayList<>();
         try {
-            String apiUrl = String.format("https://api.github.com/repos/%s/%s/pulls/%s/files", repoOwner, repoName, pullRequestNumber);
+            String apiUrl = String.format("https://api.github.com/repos/%s/%s/pulls/%s/files", repoOwner, repoName, prNumber);
             URL url = new URL(apiUrl);
 
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("Authorization", "token " + this.githubToken);
             conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
 
-            Optional<String> targetBranch = getTargetBranch(pullRequestNumber);
+            Optional<String> targetBranch = getTargetBranch(prNumber);
             if (targetBranch.isEmpty()) {
                 LOG.error("Error fetching pull request info, target branch");
                 throw new RuntimeException("Error fetching pull request info, target branch");
@@ -74,7 +74,6 @@ public class GitHubClient implements ALMClient {
 
                 int fileCount = 0;
                 for (JsonNode fileNode : root) {
-                    // Check if we've reached the file limit
                     if (fileLimit > 0 && fileCount >= fileLimit) {
                         LOG.info("Reached file limit of {}. Skipping remaining files.", fileLimit);
                         break;
@@ -87,12 +86,9 @@ public class GitHubClient implements ALMClient {
                         LOG.info("Skipping deleted file: {}", fileDiff.filePath);
                         continue;
                     }
-                    fileDiff.changes = new ArrayList<>();
 
                     String patch = fileNode.get("patch") != null ? fileNode.get("patch").asText() : null;
-                    if (patch != null) {
-                        fileDiff.changes = PatchParser.parsePatch(patch);
-                    }
+                    fileDiff.changes = patch;
 
                     fileDiff.sha = fileNode.get("sha").asText();
                     //TODO: skip if new file
@@ -108,13 +104,9 @@ public class GitHubClient implements ALMClient {
             }
         } catch (Exception e) {
             LOG.error("Error fetching PR diff from GitHub", e);
-            throw new RuntimeException("Error fetching PR diff from GitHub", e);
+            throw new IOException("Error fetching PR diff from GitHub", e);
         }
         return fileDiffs;
-    }
-
-    public String getProviderName() {
-        return ALM.GITHUB.getId();
     }
 
     public String fetchFileContent(String ref, String path) {
@@ -162,8 +154,9 @@ public class GitHubClient implements ALMClient {
         }
     }
 
-    @Override
-    public void postSummaryIssue(String prNumber, String comment) {
+    //@Override
+    public void postSummaryIssue(String comment) throws IOException {
+        //TODO: delete old report
         try {
             String apiUrl = String.format("https://api.github.com/repos/%s/%s/issues/%s/comments",
                     repoOwner, repoName, prNumber);
@@ -190,7 +183,10 @@ public class GitHubClient implements ALMClient {
             LOG.debug("Response code: " + code);
         } catch (IOException e) {
             LOG.error("Error fetching file content from GitHub", e);
-            throw new RuntimeException("Error fetching file content from GitHub", e);
+            throw new IOException("Error fetching file content from GitHub", e);
         }
+    }
+    public String getPrNumber() {
+        return prNumber;
     }
 }

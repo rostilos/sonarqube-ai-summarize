@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import io.jsonwebtoken.Jwts;
@@ -21,6 +22,8 @@ import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactoryDelegate;
 import org.sonar.api.ce.ComputeEngineSide;
+import org.sonar.api.ce.posttask.Branch;
+import org.sonar.api.ce.posttask.PostProjectAnalysisTask.ProjectAnalysis;
 import org.sonar.api.server.ServerSide;
 import org.sonar.db.alm.setting.ALM;
 import org.sonar.db.alm.setting.AlmSettingDto;
@@ -56,17 +59,23 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
     }
 
     @Override
-    public GitHubClient createClient(AlmSettingDto almSettings, ProjectAlmSettingDto projectSettings, int fileLimit) throws IOException {
-        String almRepo = projectSettings.getAlmRepo();
+    public GitHubClient createClient(
+            AlmSettingDto almSettingDto,
+            ProjectAlmSettingDto projectAlmSettingDto,
+            ProjectAnalysis projectAnalysis,
+            int fileLimit
+    ) throws IOException {
+        //TODO : allocate to utility class ( duplicate )
+        String almRepo = projectAlmSettingDto.getAlmRepo();
         String[] parts = almRepo.split("/");
 
         String repoOwner = parts[0];
         String repoName = parts[1];
+        String prNumber = getPrNumber(projectAnalysis);
 
-        validateSettings(almSettings, projectSettings);
-        String token = generateAuthToken(almSettings, projectSettings);
-
-        return new GitHubClient(token, fileLimit, repoOwner, repoName);
+        validateSettings(almSettingDto, projectAlmSettingDto);
+        String token = generateAuthToken(almSettingDto, projectAlmSettingDto);
+        return new GitHubClient(token, fileLimit, repoOwner, repoName, prNumber);
     }
 
     private void validateSettings(AlmSettingDto almSettings, ProjectAlmSettingDto projectSettings) {
@@ -152,5 +161,21 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
             this.owner = owner;
             this.repo = repo;
         }
+    }
+
+    //TODO : allocate to utility class ( duplicate )
+    private String getPrNumber(ProjectAnalysis projectAnalysis) {
+        Optional<Branch> optionalPullRequest =
+                projectAnalysis.getBranch().filter(branch -> Branch.Type.PULL_REQUEST == branch.getType());
+        if (optionalPullRequest.isEmpty()) {
+            throw new RuntimeException("Current analysis is not for a Pull Request. Task being skipped");
+        }
+
+        Optional<String> optionalPullRequestId = optionalPullRequest.get().getName();
+        if (optionalPullRequestId.isEmpty()) {
+            throw new RuntimeException("No pull request ID has been submitted with the Pull Request. Analysis will be skipped");
+        }
+
+        return optionalPullRequestId.get();
     }
 }

@@ -2,6 +2,7 @@ package org.perpectiveteam.plugins.aisummarize.pullrequest.almclient;
 
 import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
 import org.sonar.api.ce.ComputeEngineSide;
+import org.sonar.api.ce.posttask.PostProjectAnalysisTask.ProjectAnalysis;
 import org.sonar.api.server.ServerSide;
 import org.sonar.db.alm.setting.AlmSettingDto;
 import org.sonar.db.alm.setting.ALM;
@@ -16,9 +17,8 @@ import java.util.stream.Collectors;
 @ServerSide
 @ComputeEngineSide
 public class ALMClientFactory {
-    //TODO: log issues
-    //private static final Logger LOG = Loggers.get(ALMClientFactory.class);
     private final AiSummarizeConfig config;
+
     @Autowired
     public ALMClientFactory(List<ALMClientFactoryDelegate> delegates, AiSummarizeConfig config) {
         this.delegateMap = delegates.stream().collect(Collectors.toMap(ALMClientFactoryDelegate::getAlm, d -> d));
@@ -28,13 +28,18 @@ public class ALMClientFactory {
 
     private final Map<ALM, ALMClientFactoryDelegate> delegateMap;
 
-    public ALMClient createClient(String currentAlmId, AlmSettingDto almSettingDto, ProjectAlmSettingDto projectAlmSettingDto) throws IOException {
+    public ALMClient createClient(
+            String currentAlmId,
+            AlmSettingDto almSettingDto,
+            ProjectAnalysis projectAnalysis,
+            ProjectAlmSettingDto projectAlmSettingDto
+    ) throws IOException {
         ALM alm = ALM.fromId(currentAlmId);
         int fileLimit = config.getFileLimit();
         ALMClientFactoryDelegate delegate = delegateMap.get(alm);
         if (delegate == null) {
             throw new IllegalArgumentException("No factory for ALM: " + currentAlmId);
         }
-        return delegate.createClient(almSettingDto, projectAlmSettingDto, fileLimit);
+        return delegate.createClient(almSettingDto, projectAlmSettingDto, projectAnalysis, fileLimit);
     }
 }

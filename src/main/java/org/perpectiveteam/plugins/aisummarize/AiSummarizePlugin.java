@@ -5,8 +5,13 @@ import java.util.List;
 
 import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
 import org.perpectiveteam.plugins.aisummarize.hooks.PostJobInScanner;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactory;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.PostAnalysisIssueVisitor;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket.cloud.BitbucketCloudClientFactory;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket.cloud.BitbucketConfiguration;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket.cloud.HttpClientBuilderFactory;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.github.GitHubClientFactory;
+import org.perpectiveteam.plugins.aisummarize.summarize.SummarizeExecutorFactory;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactory;
 import org.sonar.api.Plugin;
 import org.sonar.api.PropertyType;
 import org.sonar.api.SonarQubeSide;
@@ -27,6 +32,9 @@ public class AiSummarizePlugin implements Plugin, CoreExtension {
 
     @Override
     public void load(CoreExtension.Context context) {
+        if (SonarQubeSide.COMPUTE_ENGINE == context.getRuntime().getSonarQubeSide()) {
+            context.addExtensions(PostAnalysisIssueVisitor.class);
+        }
         // Not used currently
     }
 
@@ -42,6 +50,10 @@ public class AiSummarizePlugin implements Plugin, CoreExtension {
                 ALMClientFactory.class,
                 PostJobInScanner.class,
                 GitHubClientFactory.class,
+                BitbucketConfiguration.class,
+                HttpClientBuilderFactory.class,
+                BitbucketCloudClientFactory.class,
+                SummarizeExecutorFactory.class,
 
                 PropertyDefinition.builder(AiSummarizeConfig.FILE_LIMIT)
                         .name("File Limit")

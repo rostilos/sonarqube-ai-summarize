@@ -1,5 +1,6 @@
 package org.perpectiveteam.plugins.aisummarize.pullrequest;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
@@ -17,9 +18,9 @@ public class PullRequestDiffFetcher {
         this.almClient = almClient;
     }
 
-    public PullRequestDiff fetchDiff(String pullRequestNumber) {
-        LOG.info("Fetching PR diff for PR #{}", pullRequestNumber);
-        List<FileDiff> files = almClient.fetchPullRequestFilesDiff(pullRequestNumber);
+    public PullRequestDiff fetchDiff() throws IOException {
+        LOG.info("Fetching PR diff for PR #{}", almClient.getPrNumber());
+        List<FileDiff> files = almClient.fetchPullRequestFilesDiff();
         LOG.info("Fetched {} files from PR", files.size());
 
         PullRequestDiff diff = new PullRequestDiff();
