@@ -11,6 +11,8 @@ It is supposed to add functionality that will allow to additionally analyze the 
 
 - Analyze PR on ALM platform using pre-selected AI providers, with an established template.
 - Report in the form of comments on the results of AI summarize
+  ![1748004073744](https://github.com/user-attachments/assets/23f32985-4b8f-4268-8db0-a5691cc2b207)
+
 
 <h2>Requirements</h2>
 
@@ -87,6 +89,8 @@ networks:
 
 ### Configuration 
 A screenshot of the settings example.
+![Screenshot_20250529_173055](https://github.com/user-attachments/assets/71945ed0-5835-45d5-bbdb-5f38f2bc2510)
+
 The settings themselves can be found in
 
 `Administration -> General Settings -> AI Summarize` (at global level)
