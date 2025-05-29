@@ -1,30 +1,22 @@
 package org.perpectiveteam.plugins.aisummarize.ai;
 
-import org.perpectiveteam.plugins.aisummarize.ai.connector.AIConnector;
-import org.perpectiveteam.plugins.aisummarize.ai.connector.AIConnectorFactory;
+import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProvider;
+import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProviderFactory;
 import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
 
 public class AIClient {
-    private static final Logger LOG = Loggers.get(AIClient.class);
-    
-    private final AIConnector connector;
+    private final AIProvider connector;
+    public static final String AI_SUMMARIZE_MARKER = "[SQ AI Summarize]";
 
     public AIClient(AiSummarizeConfig config) {
-        AIConnectorFactory factory = new AIConnectorFactory(config);
+        AIProviderFactory factory = new AIProviderFactory(config);
         this.connector = factory.createConnector();
-        LOG.info("Initialized AI client with provider: {}", connector.getProviderName());
-    }
-
-    public AIClient(AIConnector connector) {
-        this.connector = connector;
     }
 
     public String getCompletion(String prompt) {
-        return connector.getCompletion(prompt);
+        return AI_SUMMARIZE_MARKER + "\n" + connector.getCompletion(prompt);
     }
-    
+
     public String getProviderName() {
         return connector.getProviderName();
     }

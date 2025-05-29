@@ -1,32 +1,38 @@
 package org.perpectiveteam.plugins.aisummarize.ai;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
+import org.sonar.api.ce.ComputeEngineSide;
+import org.sonar.api.server.ServerSide;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
+@ServerSide
+@ComputeEngineSide
 public class AIPromptBuilder {
+    private final AiSummarizeConfig aiSummarizeConfig;
+
+    public AIPromptBuilder(AiSummarizeConfig aiSummarizeConfig) {
+        this.aiSummarizeConfig = aiSummarizeConfig;
+    }
+
     private static final Logger LOG = Loggers.get(AIPromptBuilder.class);
 
     public String buildPrompt(List<FileDiff> fileDiffs) {
         //TODO: include SQ issues
-        //TODO: Allow to define prompt and enabled data from the admin panel (e.g. by templating).
+        ParsedTemplate parsed = parseTemplate(aiSummarizeConfig);
         LOG.info("Building AI prompt for {} files", fileDiffs.size());
         StringBuilder sb = new StringBuilder();
-        sb.append("Please review the following code below:\n");
-        sb.append("Consider:\n" +
-                "1. Code quality and adherence to best practices\n" +
-                "2. Potential bugs or edge cases\n" +
-                "3. Performance optimizations\n" +
-                "4. Readability and maintainability\n" +
-                "5. Any security concerns\n" +
-                "Suggest improvements and explain your reasoning for each suggestion.\n.");
-        sb.append("Provide a summary in markdown markup.\n");
+        sb.append(parsed.intro);
+        sb.append("========================================\n");
 
         int validFileCount = 0;
         for (FileDiff fileDiff : fileDiffs) {
-            if(fileDiff.rawContent == null || fileDiff.filePath.isEmpty() || fileDiff.rawContent.isEmpty()) {
+            if (fileDiff.rawContent == null || fileDiff.filePath.isEmpty() || fileDiff.rawContent.isEmpty()) {
                 fileDiff.rawContent = "There is no previous version, probably a new file";
                 LOG.debug("Missing previous file version for: " + fileDiff.filePath);
             }
@@ -51,20 +57,32 @@ public class AIPromptBuilder {
 
         LOG.info("Included {} valid files in the prompt", validFileCount);
         sb.append("========================================\n");
-        sb.append("Provide a consolidated summary of the changes above.\n");
+        sb.append(parsed.after);
         return sb.toString();
     }
 
-    //TODO: Allow to define prompt and enabled data from the admin panel (e.g. by templating).
-    public String buildPromptWithContext(List<FileDiff> fileDiffs, String additionalContext) {
-        String basePrompt = buildPrompt(fileDiffs);
-        StringBuilder sb = new StringBuilder(basePrompt);
-        
-        if (additionalContext != null && !additionalContext.isEmpty()) {
-            sb.append("\nAdditional Context:\n");
-            sb.append(additionalContext).append("\n");
+    public static class ParsedTemplate {
+        public final String intro;
+        public final String after;
+
+        public ParsedTemplate(String intro, String after) {
+            this.intro = intro;
+            this.after = after;
         }
-        
-        return sb.toString();
+    }
+
+    public static ParsedTemplate parseTemplate(AiSummarizeConfig aiSummarizeConfig) {
+        String template = aiSummarizeConfig.getAiPromptTemplate();
+
+        Pattern introPattern = Pattern.compile(AiSummarizeConfig.INTRO_REGEXP, Pattern.DOTALL);
+        Pattern afterPattern = Pattern.compile(AiSummarizeConfig.AFTER_REGEXP, Pattern.DOTALL);
+
+        Matcher introMatcher = introPattern.matcher(template);
+        Matcher afterMatcher = afterPattern.matcher(template);
+
+        String intro = introMatcher.find() ? introMatcher.group(1).trim() : "";
+        String after = afterMatcher.find() ? afterMatcher.group(1).trim() : "";
+
+        return new ParsedTemplate(intro, after);
     }
 }

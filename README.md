@@ -1,32 +1,122 @@
 SonarQube AI Summarize Plugin
 ==========
 
-Draft concept for a plug-in for SonarQube Server
-
 Main idea
 --------
 
 Developing a plugin for an existing platform to analyze code. 
 It is supposed to add functionality that will allow to additionally analyze the code with the help of AI
 
-### Concept Points
+<h2>Features</h2>
 
-- Analyzing only PRs ( MRs )
-- Synchronize analysis data through AI into separate reports for both SQ and alm platforms ( github, bitbucket, gitlab )
+- Analyze PR on ALM platform using pre-selected AI providers, with an established template.
+- Report in the form of comments on the results of AI summarize
+
+<h2>Requirements</h2>
+
+1. SonarQube Server ( tested on v24.12 )
+2. At least Developer Edition, or community branch plugin
+3. Configured project-level connectivity to the ALM platform ( currently there is only support for Github and Bitbucket Cloud )
+4. The token (in the case of Bitbucket) or the application (in the case of Github) must have the appropriate accesses. Basic - contents read&write
+
+<h2>Deploy & Configuration </h2>
+
+To install the plugin you can take either a compiled binary from the assets of the corresponding releases, or build from source.
+To build a plugin from source, execute this command from the project root directory:
+
+`mvn clean package`
+
+The plugin jar file is generated in the project's `target/` directory.
+
+<h4>"Cold" Deploy</h4>
+
+The standard way to install the plugin for regular users is to copy the jar artifact, from the `target/` directory to the `extensions/plugins/` directory of your SonarQube Server installation, then start the server.
+
+<h4>Installation example ( Docker-based )</h4>
+
+````
+version: "3.8"
+services:
+  sonarqube:
+    image: sonarqube:10.7-community
+    ports:
+      - "9000:9000"
+      - "9092:9092"
+    depends_on:
+      - db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    volumes:
+      - sonarqube_conf:/opt/sonarqube/conf
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_bundled-plugins:/opt/sonarqube/lib/bundled-plugins
+      - ./sonar-ai-summarize-1.0.0.jar:/opt/sonarqube/extensions/plugins/sonar-ai-summarize-1.0.0.jar
+    networks:
+      sonar_network:
+  db:
+    image: postgres:12
+    ports:
+      - "5432:5432"
+    command: postgres -c 'max_connections=300'
+    volumes:
+      - postgresql:/var/lib/postgresql
+      - postgresql_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: sonar
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+    networks:
+      sonar_network:
+    restart: unless-stopped
+volumes:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  sonarqube_bundled-plugins:
+  postgresql:
+  postgresql_data:
+networks:
+  sonar_network:
+
+````
+
+### Configuration 
+A screenshot of the settings example.
+The settings themselves can be found in
+
+`Administration -> General Settings -> AI Summarize` (at global level)
+
+`Project Settings -> General Settings -> AI Summarize` (at the project level).
+
+Among the settings
+<ul>
+    <li>Enable functionality</li>
+    <li>Select AI provider</li>
+    <li>Specify model</li>
+    <li>Specify token</li>
+    <li>Prompt template ( optionally ). Only data customization is available before and after the main prompt ( source file + patch ).</li>
+    <li>File Limit option - number of files in PR that will be analyzed ( for limitations ) </li>
+</ul>
+
 
 ### Why SQ and the plugin
 
 ---------
 
-SQ is a comprehensive platform, not just a standalone tool. 
+SQ is a comprehensive platform, not just a standalone tool.
 Officially SQ are developing a plugin for AI CodeFix Suggestions, this suggests a similar degree of integration, but the upside is that it includes analysis.
 It's much more convenient to manage multiple tools (static analysis, vulnerability analysis, AI code review - etc.) from one place, and configure providers there, rather than having and customizing a number of different tools
 
-### Item to be realized
+### TODO List
 
-- Post-hook on scanner, selecting only PR analyses
-- Create functionality to define diffs within PR ( most likely through separate adapters and API requests ). SQ is not supposed to directly manipulate data in the database via plugins ( for maintainability purposes ), and in the context of this data obviously won't be there. Adapters for GitHub, GitLab, Bitbucket
-- Parsing of received data from API, creation of corresponding DTOs
-- Determining what should go into the prompt. Preliminary - source file + diff.
-- Functionality of interaction with various LLMs, adapters for the most famous sites
-- Construction of prompt data based on previously constructed DTOs
+- Availability for all known ALM platforms ( currently available only on github and bitbucket cloud )
+- Static tests ( not available at the moment )
+- Improved Prompt Generation
+- Expanding the list of AI providers ( currently OpenRouter and OpenAI are available )
+- Improvement in the direction of communication with AI ( through reply to comments )
+- General refactoring of the code-styles ( alpha version )

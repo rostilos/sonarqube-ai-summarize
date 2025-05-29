@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONObject;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
@@ -81,22 +81,26 @@ public class GitHubClient implements ALMClient {
 
                     FileDiff fileDiff = new FileDiff();
                     fileDiff.filePath = fileNode.get("filename").asText();
-                    fileDiff.diffType = fileNode.get("status").asText();
-                    if ("removed".equals(fileDiff.diffType)) {
+
+                    String status = fileNode.get("status").asText();
+                    FileDiff.DiffType diffType = getDiffTypeFromResponseData(status, fileDiff.filePath);
+                    if(diffType == null) {
+                        continue;
+                    }
+                    fileDiff.diffType = diffType;
+
+                    if (fileDiff.diffType == FileDiff.DiffType.REMOVED) {
                         LOG.info("Skipping deleted file: {}", fileDiff.filePath);
                         continue;
                     }
 
-                    String patch = fileNode.get("patch") != null ? fileNode.get("patch").asText() : null;
-                    fileDiff.changes = patch;
-
+                    fileDiff.changes = fileNode.get("patch") != null ? fileNode.get("patch").asText() : null;
                     fileDiff.sha = fileNode.get("sha").asText();
-                    //TODO: skip if new file
-                    //TODO: add enum to the checks
-                    if (!fileDiff.diffType.equals("added")) {
-                        fileDiff.rawContent = fetchFileContent(targetBranch.get(), fileDiff.filePath);
-                    } else {
+
+                    if (fileDiff.diffType == FileDiff.DiffType.ADDED) {
                         fileDiff.rawContent = "There is no previous version, probably a new file";
+                    } else {
+                        fileDiff.rawContent = fetchFileContent(targetBranch.get(), fileDiff.filePath);
                     }
                     fileDiffs.add(fileDiff);
                     fileCount++;
@@ -107,6 +111,15 @@ public class GitHubClient implements ALMClient {
             throw new IOException("Error fetching PR diff from GitHub", e);
         }
         return fileDiffs;
+    }
+
+    public FileDiff.DiffType getDiffTypeFromResponseData(String responseStatus, String filePath) {
+        try {
+            return FileDiff.DiffType.fromValue(responseStatus);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Unknown diff type '{}', skipping file: {}", responseStatus, filePath);
+        }
+        return null;
     }
 
     public String fetchFileContent(String ref, String path) {
@@ -129,7 +142,7 @@ public class GitHubClient implements ALMClient {
             }
         } catch (IOException e) {
             LOG.error("Error fetching file content from GitHub", e);
-            //TODO: skip if new file
+            //TODO: handle error
             //throw new RuntimeException("Error fetching file content from GitHub", e);
             return "";
         }
@@ -154,8 +167,8 @@ public class GitHubClient implements ALMClient {
         }
     }
 
-    //@Override
-    public void postSummaryIssue(String comment) throws IOException {
+    @Override
+    public void postSummaryComment(String comment) throws IOException {
         //TODO: delete old report
         try {
             String apiUrl = String.format("https://api.github.com/repos/%s/%s/issues/%s/comments",
@@ -186,6 +199,7 @@ public class GitHubClient implements ALMClient {
             throw new IOException("Error fetching file content from GitHub", e);
         }
     }
+
     public String getPrNumber() {
         return prNumber;
     }

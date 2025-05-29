@@ -1,11 +1,12 @@
-package org.perpectiveteam.plugins.aisummarize.ai.connector.providers;
+package org.perpectiveteam.plugins.aisummarize.ai.providers.providers;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import org.perpectiveteam.plugins.aisummarize.ai.connector.AIConnector;
+import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProvider;
+import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
@@ -14,26 +15,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class OpenAIConnector implements AIConnector {
-    private static final Logger LOG = Loggers.get(OpenAIConnector.class);
+public class OpenAIProvider implements AIProvider {
+    private static final Logger LOG = Loggers.get(OpenAIProvider.class);
     private static final String PROVIDER_NAME = "openai";
-    private static final String DEFAULT_MODEL = "gpt-4";
-    
-    private final String apiKey;
-    private final String model;
 
-    public OpenAIConnector(String apiKey) {
-        this(apiKey, DEFAULT_MODEL);
-    }
+    private final AiSummarizeConfig aiSummarizeConfig;
 
-    public OpenAIConnector(String apiKey, String model) {
-        this.apiKey = apiKey;
-        this.model = model;
+    public OpenAIProvider(AiSummarizeConfig aiSummarizeConfig) {
+        this.aiSummarizeConfig = aiSummarizeConfig;
     }
     
     @Override
     public String getCompletion(String prompt) {
-        //TODO: remove hardcoded model & API url
+        String apiKey = aiSummarizeConfig.getAiApiKey();
+        String model = aiSummarizeConfig.getAiModel();
+        
         try {
             URL url = new URL("https://openrouter.ai/api/v1/chat/completions");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -44,7 +40,7 @@ public class OpenAIConnector implements AIConnector {
 
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode payload = mapper.createObjectNode();
-            payload.put("model", "deepseek/deepseek-prover-v2:free");
+            payload.put("model", model);
             payload.put("temperature", 0.7);
 
             ArrayNode messages = payload.putArray("messages");
@@ -55,12 +51,10 @@ public class OpenAIConnector implements AIConnector {
             userMessage.put("role", "user");
             userMessage.put("content", prompt);
 
-            // Send JSON payload
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(mapper.writeValueAsBytes(payload));
             }
 
-            // Handle response
             int status = conn.getResponseCode();
             InputStream in = (status < 400) ? conn.getInputStream() : conn.getErrorStream();
             JsonNode response = mapper.readTree(in);

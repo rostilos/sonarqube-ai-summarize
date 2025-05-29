@@ -1,17 +1,9 @@
 package org.perpectiveteam.plugins.aisummarize.pullrequest;
 
-
-import org.sonar.api.ce.posttask.Analysis;
 import org.sonar.api.ce.posttask.PostProjectAnalysisTask;
 import org.sonar.api.ce.posttask.Project;
-import org.sonar.api.ce.posttask.QualityGate;
-import org.sonar.api.issue.IssueStatus;
-import org.sonar.ce.task.projectanalysis.component.Component;
 
-import java.util.Date;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 //TODO: add SQ issues to prompt
 public class AnalysisDetails {
@@ -41,10 +33,6 @@ public class AnalysisDetails {
 
     public List<PostAnalysisIssueVisitor.ComponentIssue> getIssues() {
         return issues;
-    }
-
-    private Analysis getAnalysis() {
-        return projectAnalysis.getAnalysis().orElseThrow();
     }
 
     private Project getProject() {

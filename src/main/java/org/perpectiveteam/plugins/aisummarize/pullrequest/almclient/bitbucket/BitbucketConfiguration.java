@@ -1,4 +1,4 @@
-package org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket.cloud;
+package org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket;
 
 public class BitbucketConfiguration {
 
@@ -17,5 +17,4 @@ public class BitbucketConfiguration {
     public String getProject() {
         return project;
     }
-
 }

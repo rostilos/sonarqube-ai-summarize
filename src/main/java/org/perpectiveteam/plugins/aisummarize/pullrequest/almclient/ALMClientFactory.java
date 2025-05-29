@@ -24,8 +24,7 @@ public class ALMClientFactory {
         this.delegateMap = delegates.stream().collect(Collectors.toMap(ALMClientFactoryDelegate::getAlm, d -> d));
         this.config = config;
     }
-
-
+    
     private final Map<ALM, ALMClientFactoryDelegate> delegateMap;
 
     public ALMClient createClient(

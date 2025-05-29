@@ -2,42 +2,43 @@ package org.perpectiveteam.plugins.aisummarize.hooks;
 
 import java.util.Optional;
 
+import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
 import org.perpectiveteam.plugins.aisummarize.summarize.SummarizeExecutor;
 import org.perpectiveteam.plugins.aisummarize.summarize.SummarizeExecutorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.ce.posttask.PostProjectAnalysisTask;
-import org.sonar.api.config.Configuration;
 import org.sonar.db.DbClient;
 import org.sonar.db.DbSession;
 import org.sonar.db.alm.setting.AlmSettingDto;
 import org.sonar.db.alm.setting.ProjectAlmSettingDto;
 
-public class PostJobInScanner implements PostProjectAnalysisTask {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PostJobInScanner.class);
+public class PostProjectAnalysisSummarize implements PostProjectAnalysisTask {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PostProjectAnalysisSummarize.class);
 
     private final DbClient dbClient;
     //private final PostAnalysisIssueVisitor postAnalysisIssueVisitor;
-    private final Configuration configuration;
     private final SummarizeExecutorFactory summarizeExecutorFactory;
 
-    public PostJobInScanner(
+    public PostProjectAnalysisSummarize(
             DbClient dbClient,
-            Configuration configuration,
             SummarizeExecutorFactory summarizeExecutorFactory
             //PostAnalysisIssueVisitor postAnalysisIssueVisitor
     ) {
         //this.postAnalysisIssueVisitor = postAnalysisIssueVisitor;
         this.dbClient = dbClient;
-        this.configuration = configuration;
         this.summarizeExecutorFactory = summarizeExecutorFactory;
     }
 
     @Override
     public void finished(Context context) {
-        //TODO: filter by included in analysis code only (??)
         LOGGER.info("PostJobInScanner.finished method called");
         ProjectAnalysis projectAnalysis = context.getProjectAnalysis();
+
+        //TODO: refactor this later!!!!!!!!
+        //An object should not be “pre-initialized” because there is a high probability of forgetting about it later.
+        //Not critical for alpha
+        AiSummarizeConfig.setProjectAnalysis(projectAnalysis);
 
         ProjectAlmSettingDto projectAlmSettingDto;
         Optional<AlmSettingDto> optionalAlmSettingDto;

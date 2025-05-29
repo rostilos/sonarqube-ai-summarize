@@ -1,5 +1,6 @@
 package org.perpectiveteam.plugins.aisummarize.summarize;
 
+import org.perpectiveteam.plugins.aisummarize.ai.AIPromptBuilder;
 import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactory;
@@ -15,24 +16,20 @@ import java.io.IOException;
 @ServerSide
 @ComputeEngineSide
 public class SummarizeExecutorFactory {
-    //TODO: log issues
-    //private static final Logger LOG = Loggers.get(ALMClientFactory.class);
-    private final AiSummarizeConfig aiSummarizeConfig;
     private final ALMClientFactory almClientFactory;
+    private final AiSummarizeConfig aiSummarizeConfig;
+    private final AIPromptBuilder promptBuilder;
 
     @Autowired
     public SummarizeExecutorFactory(
-            //List<SummarizeExecutorFactoryDelegate> delegates,
+            ALMClientFactory almClientFactory,
             AiSummarizeConfig aiSummarizeConfig,
-            ALMClientFactory almClientFactory
+            AIPromptBuilder promptBuilder
     ) {
-        //this.delegateMap = delegates.stream().collect(Collectors.toMap(SummarizeExecutorFactoryDelegate::getAlm, d -> d));
-        this.aiSummarizeConfig = aiSummarizeConfig;
         this.almClientFactory = almClientFactory;
+        this.aiSummarizeConfig = aiSummarizeConfig;
+        this.promptBuilder = promptBuilder;
     }
-
-
-    //private final Map<ALM, SummarizeExecutorFactoryDelegate> delegateMap;
 
     public SummarizeExecutor createExecutor(
             String currentAlmId,
@@ -40,14 +37,7 @@ public class SummarizeExecutorFactory {
             ProjectAnalysis projectAnalysis,
             ProjectAlmSettingDto projectAlmSettingDto
     ) throws IOException {
-//        ALM alm = ALM.fromId(currentAlmId);
-//        int fileLimit = config.getFileLimit();
-//
-//        SummarizeExecutorFactoryDelegate delegate = delegateMap.get(alm);
-//        if (delegate == null) {
-//            throw new IllegalArgumentException("No factory for ALM: " + currentAlmId);
-//        }
         ALMClient almClient = almClientFactory.createClient(currentAlmId, almSettingDto, projectAnalysis, projectAlmSettingDto);
-        return new SummarizeExecutor(almClient, aiSummarizeConfig);
+        return new SummarizeExecutor(almClient, projectAnalysis, aiSummarizeConfig, promptBuilder);
     }
 }

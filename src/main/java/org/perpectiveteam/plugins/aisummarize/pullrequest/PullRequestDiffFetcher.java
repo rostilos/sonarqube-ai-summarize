@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.List;
 
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.FileDiff;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.dtobuilder.PullRequestDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.PullRequestDiff;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 

@@ -21,6 +21,7 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactoryDelegate;
+import org.perpectiveteam.plugins.aisummarize.utils.PullRequestData;
 import org.sonar.api.ce.ComputeEngineSide;
 import org.sonar.api.ce.posttask.Branch;
 import org.sonar.api.ce.posttask.PostProjectAnalysisTask.ProjectAnalysis;
@@ -65,13 +66,12 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
             ProjectAnalysis projectAnalysis,
             int fileLimit
     ) throws IOException {
-        //TODO : allocate to utility class ( duplicate )
         String almRepo = projectAlmSettingDto.getAlmRepo();
         String[] parts = almRepo.split("/");
 
         String repoOwner = parts[0];
         String repoName = parts[1];
-        String prNumber = getPrNumber(projectAnalysis);
+        String prNumber = PullRequestData.getPrNumber(projectAnalysis);
 
         validateSettings(almSettingDto, projectAlmSettingDto);
         String token = generateAuthToken(almSettingDto, projectAlmSettingDto);
@@ -161,21 +161,5 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
             this.owner = owner;
             this.repo = repo;
         }
-    }
-
-    //TODO : allocate to utility class ( duplicate )
-    private String getPrNumber(ProjectAnalysis projectAnalysis) {
-        Optional<Branch> optionalPullRequest =
-                projectAnalysis.getBranch().filter(branch -> Branch.Type.PULL_REQUEST == branch.getType());
-        if (optionalPullRequest.isEmpty()) {
-            throw new RuntimeException("Current analysis is not for a Pull Request. Task being skipped");
-        }
-
-        Optional<String> optionalPullRequestId = optionalPullRequest.get().getName();
-        if (optionalPullRequestId.isEmpty()) {
-            throw new RuntimeException("No pull request ID has been submitted with the Pull Request. Analysis will be skipped");
-        }
-
-        return optionalPullRequestId.get();
     }
 }

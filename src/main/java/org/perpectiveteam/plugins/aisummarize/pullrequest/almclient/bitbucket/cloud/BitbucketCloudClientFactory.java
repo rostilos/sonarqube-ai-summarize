@@ -7,14 +7,15 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClientFactoryDelegate;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket.BitbucketConfiguration;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.bitbucket.HttpClientBuilderFactory;
+import org.perpectiveteam.plugins.aisummarize.utils.PullRequestData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.ce.ComputeEngineSide;
 import org.sonar.api.ce.posttask.Analysis;
-import org.sonar.api.ce.posttask.Branch;
 import org.sonar.api.ce.posttask.PostProjectAnalysisTask;
 import org.sonar.api.config.internal.Settings;
-import org.sonar.api.platform.Server;
 import org.sonar.api.server.ServerSide;
 import org.sonar.db.alm.setting.ALM;
 import org.sonar.db.alm.setting.AlmSettingDto;
@@ -31,17 +32,14 @@ public class BitbucketCloudClientFactory implements ALMClientFactoryDelegate {
     private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketCloudClientFactory.class);
     private final Settings settings;
     private final HttpClientBuilderFactory httpClientBuilderFactory;
-    private final Server server;
 
 
     BitbucketCloudClientFactory(
             HttpClientBuilderFactory httpClientBuilderFactory,
-            Settings settings,
-            Server server
+            Settings settings
     ) {
         this.httpClientBuilderFactory = httpClientBuilderFactory;
         this.settings = settings;
-        this.server = server;
     }
 
     @Override
@@ -66,16 +64,12 @@ public class BitbucketCloudClientFactory implements ALMClientFactoryDelegate {
         String clientId = almSettingDto.getClientId();
         String clientSecret = almSettingDto.getDecryptedClientSecret(settings.getEncryption());
         String bearerToken = BitbucketCloudClient.negotiateBearerToken(clientId, clientSecret, objectMapper, clientBuilder.build());
+        String prNumber = PullRequestData.getPrNumber(projectAnalysis);
 
-        //TODO : allocate to utility class ( duplicate )
-        String prNumber = getPrNumber(projectAnalysis);
         Optional<Analysis> optionalAnalysis = projectAnalysis.getAnalysis();
         if (optionalAnalysis.isEmpty()) {
             throw new IOException("No analysis results were created for this project analysis. This is likely to be due to an earlier failure");
         }
-        Analysis analysis = optionalAnalysis.get();
-        String commitId = analysis.getRevision().get();
-        String dashboardUrl = getDashboardUrl();
 
         return new BitbucketCloudClient(
                 createAuthorisingClient(clientBuilder, bearerToken),
@@ -83,9 +77,7 @@ public class BitbucketCloudClientFactory implements ALMClientFactoryDelegate {
                 fileLimit,
                 appId,
                 almRepo,
-                prNumber,
-                commitId,
-                dashboardUrl
+                prNumber
         );
     }
 
@@ -128,27 +120,5 @@ public class BitbucketCloudClientFactory implements ALMClientFactoryDelegate {
                     .build();
             return chain.proceed(newRequest);
         }).build();
-    }
-
-    //TODO : allocate to utility class ( duplicate )
-    private String getPrNumber(PostProjectAnalysisTask.ProjectAnalysis projectAnalysis) {
-        Optional<Branch> optionalPullRequest =
-                projectAnalysis.getBranch().filter(branch -> Branch.Type.PULL_REQUEST == branch.getType());
-        if (optionalPullRequest.isEmpty()) {
-            throw new RuntimeException("Current analysis is not for a Pull Request. Task being skipped");
-        }
-
-        Optional<String> optionalPullRequestId = optionalPullRequest.get().getName();
-        if (optionalPullRequestId.isEmpty()) {
-            throw new RuntimeException("No pull request ID has been submitted with the Pull Request. Analysis will be skipped");
-        }
-
-        return optionalPullRequestId.get();
-    }
-
-    //private String getDashboardUrl(AnalysisDetails analysisDetails) {
-    //    return server.getPublicRootUrl() + "/dashboard?id=" + URLEncoder.encode(analysisDetails.getAnalysisProjectKey(), StandardCharsets.UTF_8) + "&pullRequest=" + analysisDetails.getPullRequestId();
-        private String getDashboardUrl() {
-            return server.getPublicRootUrl();
     }
 }
