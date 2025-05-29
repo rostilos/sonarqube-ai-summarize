@@ -19,7 +19,7 @@ It is supposed to add functionality that will allow to additionally analyze the 
 1. SonarQube Server ( tested on v24.12 )
 2. At least Developer Edition, or community branch plugin
 3. Configured project-level connectivity to the ALM platform ( currently there is only support for Github and Bitbucket Cloud )
-4. The token (in the case of Bitbucket) or the application (in the case of Github) must have the appropriate accesses. Basic - contents read&write
+4. The token (in the case of Bitbucket) or the application (in the case of Github) must have the appropriate accesses. Basic - PR read&write
 
 <h2>Deploy & Configuration </h2>
 
