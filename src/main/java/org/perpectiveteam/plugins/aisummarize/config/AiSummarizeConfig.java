@@ -10,6 +10,7 @@ import java.util.Optional;
 @ServerSide
 @ComputeEngineSide
 public class AiSummarizeConfig {
+    public static final String IS_ENABLED = "ai.summarize.enabled";
     public static final String AI_CLIENT_API_KEY = "ai.summarize.openai.apikey";
     public static final String FILE_LIMIT = "ai.summarize.file.limit";
     public static final String AI_PROVIDER = "ai.summarize.ai.provider";
@@ -57,6 +58,12 @@ public class AiSummarizeConfig {
         );
     }
 
+    public String getGlobalIsEnabled() {
+        return configuration.get(IS_ENABLED).orElse(
+                "0"
+        );
+    }
+
     // Project-specific configuration methods
     public String getAiApiKey() {
         return getProjectSettingFromProjectAnalysis(AI_CLIENT_API_KEY)
@@ -84,9 +91,14 @@ public class AiSummarizeConfig {
                 .orElse(getGlobalAiPromptTemplate());
     }
 
+    public Boolean getIsEnabled(){
+        return Boolean.valueOf(getProjectSettingFromProjectAnalysis(IS_ENABLED)
+                .orElse(getGlobalIsEnabled()));
+    }
+
     private Optional<String> getProjectSettingFromProjectAnalysis(String settingKey) {
         //TODO: refactor this later
-        if(projectAnalysis == null) {
+        if (projectAnalysis == null) {
             throw new RuntimeException("The method getters must be accessed after the projectAnalysis is set");
         }
         return getScannerProperty(settingKey);

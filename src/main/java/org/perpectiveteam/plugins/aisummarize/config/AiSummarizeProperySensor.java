@@ -28,11 +28,9 @@ public class AiSummarizeProperySensor implements Sensor {
         configuration.get(AiSummarizeConfig.FILE_LIMIT)
                 .filter(v -> !v.isEmpty())
                 .ifPresent(v -> sensorContext.addContextProperty(AiSummarizeConfig.FILE_LIMIT, v));
-
         configuration.get(AiSummarizeConfig.AI_PROVIDER)
                 .filter(v -> !v.isEmpty())
                 .ifPresent(v -> sensorContext.addContextProperty(AiSummarizeConfig.AI_PROVIDER, v));
-
         configuration.get(AiSummarizeConfig.AI_MODEL)
                 .filter(v -> !v.isEmpty())
                 .ifPresent(v -> sensorContext.addContextProperty(AiSummarizeConfig.AI_MODEL, v));
@@ -42,6 +40,9 @@ public class AiSummarizeProperySensor implements Sensor {
         configuration.get(AiSummarizeConfig.AI_PROMPT_TEMPLATE)
                 .filter(v -> !v.isEmpty())
                 .ifPresent(v -> sensorContext.addContextProperty(AiSummarizeConfig.AI_PROMPT_TEMPLATE, v));
+        configuration.get(AiSummarizeConfig.IS_ENABLED)
+                .filter(v -> !v.isEmpty())
+                .ifPresent(v -> sensorContext.addContextProperty(AiSummarizeConfig.IS_ENABLED, v));
 
     }
 

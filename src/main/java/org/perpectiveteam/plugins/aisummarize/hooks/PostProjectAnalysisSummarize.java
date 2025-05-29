@@ -18,14 +18,17 @@ public class PostProjectAnalysisSummarize implements PostProjectAnalysisTask {
 
     private final DbClient dbClient;
     //private final PostAnalysisIssueVisitor postAnalysisIssueVisitor;
+    private final AiSummarizeConfig aiSummarizeConfig;
     private final SummarizeExecutorFactory summarizeExecutorFactory;
 
     public PostProjectAnalysisSummarize(
             DbClient dbClient,
-            SummarizeExecutorFactory summarizeExecutorFactory
+            SummarizeExecutorFactory summarizeExecutorFactory,
+            AiSummarizeConfig aiSummarizeConfig
             //PostAnalysisIssueVisitor postAnalysisIssueVisitor
     ) {
         //this.postAnalysisIssueVisitor = postAnalysisIssueVisitor;
+        this.aiSummarizeConfig = aiSummarizeConfig;
         this.dbClient = dbClient;
         this.summarizeExecutorFactory = summarizeExecutorFactory;
     }
@@ -39,6 +42,9 @@ public class PostProjectAnalysisSummarize implements PostProjectAnalysisTask {
         //An object should not be “pre-initialized” because there is a high probability of forgetting about it later.
         //Not critical for alpha
         AiSummarizeConfig.setProjectAnalysis(projectAnalysis);
+        if(!aiSummarizeConfig.getIsEnabled()){
+            return;
+        }
 
         ProjectAlmSettingDto projectAlmSettingDto;
         Optional<AlmSettingDto> optionalAlmSettingDto;

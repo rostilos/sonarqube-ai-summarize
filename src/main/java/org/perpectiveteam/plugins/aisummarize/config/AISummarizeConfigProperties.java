@@ -6,6 +6,7 @@ import org.sonar.api.config.PropertyDefinition;
 
 import java.util.List;
 
+import static java.lang.String.valueOf;
 import static org.sonar.api.PropertyType.SINGLE_SELECT_LIST;
 import static org.sonar.api.PropertyType.TEXT;
 
@@ -20,6 +21,16 @@ public class AISummarizeConfigProperties {
 
     public static List<PropertyDefinition> all() {
         return List.of(
+                PropertyDefinition.builder(AiSummarizeConfig.IS_ENABLED)
+                        .name("Enable Plugin")
+                        .description("Enable Plugin")
+                        .category(CATEGORY)
+                        .subCategory(SUBCATEGORY_AI)
+                        .defaultValue(valueOf(false))
+                        .type(PropertyType.BOOLEAN)
+                        .onConfigScopes(PropertyDefinition.ConfigScope.PROJECT)
+                        .index(0)
+                        .build(),
                 // AI Provider settings
                 PropertyDefinition.builder(AiSummarizeConfig.AI_PROVIDER)
                         .name("AI Provider")
