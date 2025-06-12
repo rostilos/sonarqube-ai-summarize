@@ -128,7 +128,5 @@ It's much more convenient to manage multiple tools (static analysis, vulnerabili
 
 - Availability for all known ALM platforms ( currently available only on github and bitbucket cloud )
 - Static tests ( not available at the moment )
-- Improved Prompt Generation
 - Expanding the list of AI providers ( currently OpenRouter and OpenAI are available )
-- Improvement in the direction of communication with AI ( through reply to comments )
 - General refactoring of the code-styles ( alpha version )

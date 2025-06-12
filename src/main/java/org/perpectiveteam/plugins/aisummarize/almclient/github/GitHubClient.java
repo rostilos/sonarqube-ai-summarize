@@ -188,7 +188,7 @@ public class GitHubClient implements ALMClient {
     }
 
     @Override
-    public void postSummaryComment(String comment) throws IOException {
+    public void postSummaryResult(String textContent) throws IOException {
         try {
             removePreviousAISummarizeComments();
         } catch (IOException e) {
@@ -199,7 +199,7 @@ public class GitHubClient implements ALMClient {
                 repoOwner, repoName, prNumber);
 
         JSONObject json = new JSONObject();
-        json.put("body", comment);
+        json.put("body", textContent);
         String jsonBody = json.toString();
 
         Request request = new Request.Builder()

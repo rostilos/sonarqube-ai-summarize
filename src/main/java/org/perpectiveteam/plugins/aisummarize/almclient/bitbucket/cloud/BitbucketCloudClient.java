@@ -80,11 +80,11 @@ public class BitbucketCloudClient implements ALMClient {
     }
 
     @Override
-    public void postSummaryComment(String comment) throws IOException {
+    public void postSummaryResult(String textContent) throws IOException {
         deleteOldSummarizeComments();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        BitbucketCommentContent commentContent = new BitbucketCommentContent(comment);
+        BitbucketCommentContent commentContent = new BitbucketCommentContent(textContent);
         BitbucketSummarizeComment summarizeReport = createSummarizeComment(commentContent);
 
         String body = objectMapper.writeValueAsString(summarizeReport);

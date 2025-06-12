@@ -41,7 +41,7 @@ public class SummarizeExecutor {
             String summary = aiClient.getCompletion(prompt);
             LOGGER.info("AI summarization completed successfully");
 
-            almClient.postSummaryComment(summary);
+            almClient.postSummaryResult(summary);
 
         } catch (Exception e) {
             LOGGER.error("Error during AI summarization", e);
