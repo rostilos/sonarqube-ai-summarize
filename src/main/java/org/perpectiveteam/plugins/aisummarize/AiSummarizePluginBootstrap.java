@@ -4,8 +4,6 @@ import org.perpectiveteam.plugins.aisummarize.classloader.DefaultElevatedClassLo
 import org.perpectiveteam.plugins.aisummarize.classloader.ElevatedClassLoaderFactory;
 import org.perpectiveteam.plugins.aisummarize.classloader.ElevatedClassLoaderFactoryProvider;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sonar.api.Plugin;
 import org.sonar.api.SonarQubeSide;
 
@@ -28,8 +26,6 @@ import java.util.Objects;
  */
 public class AiSummarizePluginBootstrap implements Plugin {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AiSummarizePluginBootstrap.class);
-
     private final ElevatedClassLoaderFactoryProvider elevatedClassLoaderFactoryProvider;
     private final boolean available;
 
@@ -37,7 +33,7 @@ public class AiSummarizePluginBootstrap implements Plugin {
         this(DefaultElevatedClassLoaderFactoryProvider.getInstance(), false);
     }
 
-    /*package*/ AiSummarizePluginBootstrap(ElevatedClassLoaderFactoryProvider elevatedClassLoaderFactoryProvider, boolean available) {
+    AiSummarizePluginBootstrap(ElevatedClassLoaderFactoryProvider elevatedClassLoaderFactoryProvider, boolean available) {
         super();
         this.elevatedClassLoaderFactoryProvider = elevatedClassLoaderFactoryProvider;
         this.available = available;
@@ -46,13 +42,6 @@ public class AiSummarizePluginBootstrap implements Plugin {
     @Override
     public void define(Context context) {
         SonarQubeSide sonarQubeSide = context.getRuntime().getSonarQubeSide();
-//        if (SonarQubeSide.COMPUTE_ENGINE == sonarQubeSide || SonarQubeSide.SERVER == sonarQubeSide) {
-//            if (isAvailable()) {
-//                LOGGER.info("Expected agent runtime modifications detected for component: {}", sonarQubeSide);
-//            } else {
-//                throw new IllegalStateException(String.format("The plugin did not detect agent modifications so SonarQube is unlikely to work with Pull Requests or Branches. Please check the Java Agent has been correctly set for the %s component", sonarQubeSide));
-//            }
-//        }
         if (SonarQubeSide.SCANNER != sonarQubeSide) {
             return;
         }

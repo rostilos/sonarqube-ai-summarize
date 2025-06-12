@@ -3,14 +3,14 @@ package org.perpectiveteam.plugins.aisummarize.pullrequest;
 import java.io.IOException;
 import java.util.List;
 
-import org.perpectiveteam.plugins.aisummarize.pullrequest.almclient.ALMClient;
+import org.perpectiveteam.plugins.aisummarize.almclient.ALMClient;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
 import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.PullRequestDiff;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PullRequestDiffFetcher {
-    private static final Logger LOG = Loggers.get(PullRequestDiffFetcher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PullRequestDiffFetcher.class);
     
     private final ALMClient almClient;
 

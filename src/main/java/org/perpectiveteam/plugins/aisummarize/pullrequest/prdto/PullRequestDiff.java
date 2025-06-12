@@ -4,5 +4,13 @@ import java.util.List;
 
 public class PullRequestDiff {
     public List<FileDiff> files;
+
+    public List<FileDiff> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<FileDiff> files) {
+        this.files = files;
+    }
 }
 

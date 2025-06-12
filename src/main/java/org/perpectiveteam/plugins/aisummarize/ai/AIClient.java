@@ -2,13 +2,13 @@ package org.perpectiveteam.plugins.aisummarize.ai;
 
 import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProvider;
 import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProviderFactory;
-import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
+import org.perpectiveteam.plugins.aisummarize.config.SummarizeConfig;
 
 public class AIClient {
     private final AIProvider connector;
     public static final String AI_SUMMARIZE_MARKER = "[SQ AI Summarize]";
 
-    public AIClient(AiSummarizeConfig config) {
+    public AIClient(SummarizeConfig config) {
         AIProviderFactory factory = new AIProviderFactory(config);
         this.connector = factory.createConnector();
     }
