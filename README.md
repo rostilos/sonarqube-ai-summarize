@@ -34,6 +34,12 @@ The plugin jar file is generated in the project's `target/` directory.
 
 The standard way to install the plugin for regular users is to copy the jar artifact, from the `target/` directory to the `extensions/plugins/` directory of your SonarQube Server installation, then start the server.
 
+It is also mandatory to specify an agent for correct registration of the plugin:
+```
+sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar
+sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar
+```
+
 <h4>Installation example ( Docker-based )</h4>
 
 ````
@@ -50,6 +56,8 @@ services:
       SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
       SONAR_JDBC_USERNAME: sonar
       SONAR_JDBC_PASSWORD: sonar
+      SONAR_WEB_JAVAADDITIONALOPTS: "-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar"
+      SONAR_CE_JAVAADDITIONALOPTS: "-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar"
     volumes:
       - sonarqube_conf:/opt/sonarqube/conf
       - sonarqube_data:/opt/sonarqube/data

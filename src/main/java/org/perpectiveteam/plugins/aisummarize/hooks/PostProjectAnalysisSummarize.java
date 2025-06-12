@@ -27,6 +27,7 @@ public class PostProjectAnalysisSummarize implements PostProjectAnalysisTask {
             AiSummarizeConfig aiSummarizeConfig
             //PostAnalysisIssueVisitor postAnalysisIssueVisitor
     ) {
+        super();
         //this.postAnalysisIssueVisitor = postAnalysisIssueVisitor;
         this.aiSummarizeConfig = aiSummarizeConfig;
         this.dbClient = dbClient;

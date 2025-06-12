@@ -28,31 +28,31 @@ public class AiSummarizePlugin implements Plugin, CoreExtension {
     @Override
     public void load(CoreExtension.Context context) {
         if (SonarQubeSide.COMPUTE_ENGINE == context.getRuntime().getSonarQubeSide()) {
-            context.addExtensions(PostAnalysisIssueVisitor.class);
+            List<Object> extensions = new ArrayList<>(List.of(
+                    PostProjectAnalysisSummarize.class,
+                    PostAnalysisIssueVisitor.class,
+                    ALMClientFactory.class,
+                    GitHubClientFactory.class,
+                    BitbucketConfiguration.class,
+                    HttpClientBuilderFactory.class,
+                    BitbucketCloudClientFactory.class,
+                    SummarizeExecutorFactory.class,
+                    AiSummarizeConfig.class,
+                    AIPromptBuilder.class
+                )
+            );
+            extensions.addAll(AISummarizeConfigProperties.all());
+            context.addExtensions(extensions);
+        } else if (SonarQubeSide.SERVER == context.getRuntime().getSonarQubeSide()) {
+            context.addExtensions(AISummarizeConfigProperties.all());
         }
     }
 
     @Override
     public void define(Plugin.Context context) {
-        context.addExtensions(getExtensions());
-    }
-
-    //TODO: split extensions by scope ( ce, server, scanner )
-    private List<Object> getExtensions() {
-        List<Object> extensions = new ArrayList<>(List.of(
+        context.addExtensions(
                 AiSummarizeConfig.class,
-                ALMClientFactory.class,
-                PostProjectAnalysisSummarize.class,
-                GitHubClientFactory.class,
-                BitbucketConfiguration.class,
-                HttpClientBuilderFactory.class,
-                BitbucketCloudClientFactory.class,
-                SummarizeExecutorFactory.class,
-                AIPromptBuilder.class,
-                AiSummarizeProperySensor.class,
-                AISummarizeConfigProperties.all()
-        ));
-        extensions.addAll(AISummarizeConfigProperties.all());
-        return extensions;
+                AiSummarizeProperySensor.class
+        );
     }
 }

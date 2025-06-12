@@ -46,9 +46,16 @@ public class AiSummarizePluginBootstrap implements Plugin {
     @Override
     public void define(Context context) {
         SonarQubeSide sonarQubeSide = context.getRuntime().getSonarQubeSide();
-//        if (SonarQubeSide.COMPUTE_ENGINE != sonarQubeSide) {
-//            return;
+//        if (SonarQubeSide.COMPUTE_ENGINE == sonarQubeSide || SonarQubeSide.SERVER == sonarQubeSide) {
+//            if (isAvailable()) {
+//                LOGGER.info("Expected agent runtime modifications detected for component: {}", sonarQubeSide);
+//            } else {
+//                throw new IllegalStateException(String.format("The plugin did not detect agent modifications so SonarQube is unlikely to work with Pull Requests or Branches. Please check the Java Agent has been correctly set for the %s component", sonarQubeSide));
+//            }
 //        }
+        if (SonarQubeSide.SCANNER != sonarQubeSide) {
+            return;
+        }
         try {
             ClassLoader classLoader =
                     elevatedClassLoaderFactoryProvider.createFactory(context).createClassLoader(getClass());
@@ -80,5 +87,9 @@ public class AiSummarizePluginBootstrap implements Plugin {
     @Override
     public int hashCode() {
         return Objects.hash(elevatedClassLoaderFactoryProvider, available);
+    }
+
+    boolean isAvailable() {
+        return available;
     }
 }
