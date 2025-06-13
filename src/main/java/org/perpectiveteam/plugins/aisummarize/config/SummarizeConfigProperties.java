@@ -73,6 +73,17 @@ public class SummarizeConfigProperties {
                         .index(4)
                         .build(),
 
+                PropertyDefinition.builder(SummarizeConfig.FILE_MAX_LINES)
+                        .name("File Max Lines")
+                        .description("In case the number of lines of the source file or patch is higher than this value - it will be skipped for the prompt")
+                        .category(CATEGORY)
+                        .subCategory(SUBCATEGORY_GITHUB)
+                        .type(PropertyType.INTEGER)
+                        .defaultValue("1000")
+                        .onConfigScopes(PropertyDefinition.ConfigScope.PROJECT)
+                        .index(5)
+                        .build(),
+
                 PropertyDefinition.builder(SummarizeConfig.AI_PROMPT_TEMPLATE)
                         .name("AI prompt template")
                         .description("Prompt template.\n" +
@@ -88,7 +99,7 @@ public class SummarizeConfigProperties {
                         .subCategory(SUBCATEGORY_AI)
                         .type(TEXT)
                         .onConfigScopes(PropertyDefinition.ConfigScope.PROJECT)
-                        .index(5)
+                        .index(6)
                         .build()
         );
     }

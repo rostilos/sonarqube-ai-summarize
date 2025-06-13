@@ -33,11 +33,15 @@ public class AIPromptBuilder {
         int validFileCount = 0;
         for (FileDiff fileDiff : fileDiffs) {
             if (fileDiff.getRawContent() == null || fileDiff.getFilePath().isEmpty() || fileDiff.getRawContent().isEmpty()) {
-                fileDiff.setRawContent("There is no previous version, probably a new file");
                 LOGGER.debug("Missing previous file version for: {}", fileDiff.getFilePath());
+                fileDiff.setRawContent("There is no previous version, probably a new file");
             }
             if (fileDiff.getFilePath().isEmpty() || fileDiff.getChanges().isEmpty()) {
                 LOGGER.debug("Skipping file with missing data: {}", fileDiff.getFilePath());
+                continue;
+            }
+            if (fileDiff.getChanges().split("\r?\n").length > aiSummarizeConfig.getFileMaxLines()) {
+                LOGGER.debug("File will be skipped when generating prompt, too many lines, path: {}", fileDiff.getFilePath());
                 continue;
             }
             validFileCount++;
@@ -46,7 +50,7 @@ public class AIPromptBuilder {
 
             sb.append("Original Content:\n");
             sb.append("-----\n");
-            sb.append(fileDiff.getRawContent()).append("\n");
+            sb.append(getOriginalFileContent(fileDiff)).append("\n");
             sb.append("-----\n\n");
 
             sb.append("Patch:\n");
@@ -59,6 +63,15 @@ public class AIPromptBuilder {
         sb.append(DELIMITER);
         sb.append(parsed.after);
         return sb.toString();
+    }
+
+    private String getOriginalFileContent(FileDiff fileDiff) {
+        String rawContent = fileDiff.getRawContent();
+        if (rawContent.split("\r?\n").length > aiSummarizeConfig.getFileMaxLines()) {
+            return "Present but skipped for prompt ( too much content )";
+        } else {
+            return rawContent;
+        }
     }
 
     public static class ParsedTemplate {

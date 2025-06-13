@@ -43,7 +43,9 @@ public class SummarizeProperySensor implements Sensor {
         configuration.get(SummarizeConfig.IS_ENABLED)
                 .filter(v -> !v.isEmpty())
                 .ifPresent(v -> sensorContext.addContextProperty(SummarizeConfig.IS_ENABLED, v));
-
+        configuration.get(SummarizeConfig.FILE_MAX_LINES)
+                .filter(v -> !v.isEmpty())
+                .ifPresent(v -> sensorContext.addContextProperty(SummarizeConfig.FILE_MAX_LINES, v));
     }
 
 }
