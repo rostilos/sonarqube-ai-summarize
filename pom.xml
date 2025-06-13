@@ -7,8 +7,8 @@
   <packaging>sonar-plugin</packaging>
   <version>1.0.0</version>
 
-  <name>Example Plugin for SonarQube Server 10.x</name>
-  <description>Example of Plugin for SonarQube Server: Foo Language, FooLint, Custom Metrics and MeasureComputers</description>
+  <name>SonarQube AI Summarize</name>
+  <description>Summarize your PR's with AI and SQ</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -69,10 +69,34 @@
     </dependency>
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.2</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>5.10.2</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>5.11.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>5.11.0</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.javassist</groupId>
+      <artifactId>javassist</artifactId>
+      <version>3.29.2-GA</version>
     </dependency>
   </dependencies>
 
@@ -84,10 +108,16 @@
         <version>1.23.0.740</version>
         <extensions>true</extensions>
         <configuration>
-          <pluginKey>example</pluginKey>
+          <pluginKey>aisummarize</pluginKey>
           <pluginClass>org.perpectiveteam.plugins.aisummarize.AiSummarizePluginBootstrap</pluginClass>
-          <!-- Optional, only if you are sure to support older versions of the plugin API than the one you are compiling against -->
           <pluginApiMinVersion>9.9</pluginApiMinVersion>
+          <archive>
+            <manifestEntries>
+              <Premain-Class>org.perpectiveteam.plugins.aisummarize.AiSummarizeAgent</Premain-Class>
+              <Can-Redefine-Classes>true</Can-Redefine-Classes>
+              <Can-Retransform-Classes>true</Can-Retransform-Classes>
+            </manifestEntries>
+          </archive>
         </configuration>
       </plugin>
       <plugin>
@@ -96,6 +126,18 @@
         <version>3.13.0</version>
         <configuration>
           <release>11</release>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.3.0</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Premain-Class>org.perpectiveteam.plugins.aisummarize.AiSummarizeAgent</Premain-Class>
+              <Can-Redefine-Classes>true</Can-Redefine-Classes>
+            </manifestEntries>
+          </archive>
         </configuration>
       </plugin>
     </plugins>

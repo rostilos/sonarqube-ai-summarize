@@ -6,9 +6,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProvider;
-import org.perpectiveteam.plugins.aisummarize.config.AiSummarizeConfig;
-import org.sonar.api.utils.log.Logger;
-import org.sonar.api.utils.log.Loggers;
+import org.perpectiveteam.plugins.aisummarize.config.SummarizeConfig;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,13 +14,22 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class OpenAIProvider implements AIProvider {
-    private static final Logger LOG = Loggers.get(OpenAIProvider.class);
     private static final String PROVIDER_NAME = "openai";
+    private final String apiUrl;
+    private static final String API_URL = "https://api.openai.com/v1/chat/completions";
 
-    private final AiSummarizeConfig aiSummarizeConfig;
+    private final SummarizeConfig aiSummarizeConfig;
 
-    public OpenAIProvider(AiSummarizeConfig aiSummarizeConfig) {
+    public OpenAIProvider(
+            SummarizeConfig aiSummarizeConfig,
+            String apiUrl
+    ) {
         this.aiSummarizeConfig = aiSummarizeConfig;
+        this.apiUrl = (apiUrl != null) ? apiUrl : getDefaultApiUrl();
+    }
+
+    protected String getDefaultApiUrl() {
+        return API_URL;
     }
     
     @Override
@@ -31,7 +38,7 @@ public class OpenAIProvider implements AIProvider {
         String model = aiSummarizeConfig.getAiModel();
         
         try {
-            URL url = new URL("https://openrouter.ai/api/v1/chat/completions");
+            URL url = new URL(apiUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Authorization", "Bearer " + apiKey);
@@ -60,14 +67,13 @@ public class OpenAIProvider implements AIProvider {
             JsonNode response = mapper.readTree(in);
 
             if (status >= 400) {
-                throw new RuntimeException("OpenAI API error (" + status + "): " + response.toString());
+                throw new AiProviderException("AI Provider error (" + status + "): " + response.toString());
             }
 
             return response.get("choices").get(0).get("message").get("content").asText();
 
         } catch (Exception e) {
-            LOG.error("Error communicating with OpenAI", e);
-            throw new RuntimeException("Error communicating with OpenAI", e);
+            throw new AiProviderException(String.format("Error communicating with AI Provider: %s", e.getMessage()));
         }
     }
     

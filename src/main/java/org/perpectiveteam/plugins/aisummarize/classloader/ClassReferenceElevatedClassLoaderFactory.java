@@ -19,13 +19,32 @@ public class ClassReferenceElevatedClassLoaderFactory implements ElevatedClassLo
 
     @Override
     public ClassLoader createClassLoader(Class<? extends Plugin> pluginClass) {
-        Class<?> coreClass;
-        try {
-            coreClass = Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(
-                    String.format("Could not load class '%s' from Plugin Classloader", className), e);
+        Class<?> coreClass = null;
+        ClassNotFoundException lastException = null;
+
+        ClassLoader[] classLoaders = {
+                pluginClass.getClassLoader(),
+                Thread.currentThread().getContextClassLoader(),
+                ClassLoader.getSystemClassLoader(),
+                this.getClass().getClassLoader()
+        };
+
+        for (ClassLoader cl : classLoaders) {
+            if (cl == null) continue;
+            try {
+                coreClass = Class.forName(className, true, cl);
+                break;
+            } catch (ClassNotFoundException e) {
+                lastException = e;
+            }
         }
+
+        if (coreClass == null) {
+            throw new IllegalStateException(
+                    String.format("Could not load class '%s' from any available classloader", className),
+                    lastException);
+        }
+
         return createClassLoader(pluginClass.getClassLoader(), coreClass.getClassLoader());
     }
 
