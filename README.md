@@ -26,7 +26,7 @@ It is supposed to add functionality that will allow to additionally analyze the 
 To install the plugin you can take either a compiled binary from the assets of the corresponding releases, or build from source.
 To build a plugin from source, execute this command from the project root directory:
 
-`mvn clean package`
+`./build.sh`
 
 The plugin jar file is generated in the project's `target/` directory.
 

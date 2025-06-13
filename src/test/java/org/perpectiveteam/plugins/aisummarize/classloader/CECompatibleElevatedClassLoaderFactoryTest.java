@@ -1,7 +1,6 @@
 package org.perpectiveteam.plugins.aisummarize.classloader;
 
 import org.junit.jupiter.api.Test;
-import org.sonar.api.Plugin;
 
 public class CECompatibleElevatedClassLoaderFactoryTest {
 
