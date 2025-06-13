@@ -32,26 +32,26 @@ public class AIPromptBuilder {
 
         int validFileCount = 0;
         for (FileDiff fileDiff : fileDiffs) {
-            if (fileDiff.rawContent == null || fileDiff.filePath.isEmpty() || fileDiff.rawContent.isEmpty()) {
-                fileDiff.rawContent = "There is no previous version, probably a new file";
-                LOGGER.debug("Missing previous file version for: {}", fileDiff.filePath);
+            if (fileDiff.getRawContent() == null || fileDiff.getFilePath().isEmpty() || fileDiff.getRawContent().isEmpty()) {
+                fileDiff.setRawContent("There is no previous version, probably a new file");
+                LOGGER.debug("Missing previous file version for: {}", fileDiff.getFilePath());
             }
-            if (fileDiff.filePath.isEmpty() || fileDiff.changes.isEmpty()) {
-                LOGGER.debug("Skipping file with missing data: {}", fileDiff.filePath);
+            if (fileDiff.getFilePath().isEmpty() || fileDiff.getChanges().isEmpty()) {
+                LOGGER.debug("Skipping file with missing data: {}", fileDiff.getFilePath());
                 continue;
             }
             validFileCount++;
             sb.append(DELIMITER);
-            sb.append("Filename: ").append(fileDiff.filePath).append("\n\n");
+            sb.append("Filename: ").append(fileDiff.getFilePath()).append("\n\n");
 
             sb.append("Original Content:\n");
             sb.append("-----\n");
-            sb.append(fileDiff.rawContent).append("\n");
+            sb.append(fileDiff.getRawContent()).append("\n");
             sb.append("-----\n\n");
 
             sb.append("Patch:\n");
             sb.append("-----\n");
-            sb.append(fileDiff.changes).append("\n");
+            sb.append(fileDiff.getChanges()).append("\n");
             sb.append("-----\n\n");
         }
 

@@ -93,8 +93,7 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
         }
         if (projectSettings.getAlmRepo() == null) {
             throw new IllegalArgumentException("No repository name has been set for GitHub connections");
-        }
-        if (!projectSettings.getAlmRepo().contains("/")) {
+        } else if(projectSettings.getAlmRepo() == null || !projectSettings.getAlmRepo().contains("/")) {
             throw new IllegalArgumentException("Repository name must be in the format 'owner/repo'");
         }
     }
@@ -152,6 +151,9 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
     }
 
     private RepositoryCoordinates parseRepositoryPath(String path) {
+        if(path == null) {
+            throw new IllegalArgumentException("No repository name has been set for GitHub connections");
+        }
         String[] parts = path.split("/", 2);
         return new RepositoryCoordinates(parts[0], parts[1]);
     }

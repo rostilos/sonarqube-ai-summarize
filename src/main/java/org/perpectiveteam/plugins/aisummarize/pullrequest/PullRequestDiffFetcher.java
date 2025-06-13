@@ -24,7 +24,7 @@ public class PullRequestDiffFetcher {
         LOG.info("Fetched {} files from PR", files.size());
 
         PullRequestDiff diff = new PullRequestDiff();
-        diff.files = files;
+        diff.setFiles(files);
         return diff;
     }
 }

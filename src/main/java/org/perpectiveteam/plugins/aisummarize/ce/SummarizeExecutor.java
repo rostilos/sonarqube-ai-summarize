@@ -33,7 +33,7 @@ public class SummarizeExecutor {
         try {
             LOGGER.info("Starting AI summarization");
 
-            String prompt = promptBuilder.buildPrompt(pullRequestDiff.files);
+            String prompt = promptBuilder.buildPrompt(pullRequestDiff.getFiles());
 
             AIClient aiClient = new AIClient(aiSummarizeConfig);
             LOGGER.info("Using AI provider: {}", aiClient.getProviderName());

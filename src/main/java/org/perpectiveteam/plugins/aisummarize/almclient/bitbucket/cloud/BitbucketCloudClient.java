@@ -132,10 +132,11 @@ public class BitbucketCloudClient implements ALMClient {
                     break;
                 }
 
-                if (fileDiff.diffType != FileDiff.DiffType.ADDED) {
-                    fileDiff.rawContent = fetchFileContent(targetBranch, fileDiff.filePath);
+                if (fileDiff.getDiffType() != FileDiff.DiffType.ADDED) {
+                    String fileRawContentFromBitbucket = fetchFileContent(targetBranch, fileDiff.getFilePath());
+                    fileDiff.setRawContent(fileRawContentFromBitbucket);
                 } else {
-                    fileDiff.rawContent = "There is no previous version, probably a new file";
+                    fileDiff.setRawContent("There is no previous version, probably a new file");
                 }
                 fileCount++;
             }
@@ -228,6 +229,26 @@ public class BitbucketCloudClient implements ALMClient {
         }
     }
 
+    private void deleteComment(JsonNode comment) throws IOException {
+        JsonNode content = comment.path("content").path("raw");
+        if (content.asText().contains(AIClient.AI_SUMMARIZE_MARKER)) {
+            String deleteUrl = comment.path("links").path("self").path("href").asText();
+
+            Request deleteRequest = new Request.Builder()
+                    .delete()
+                    .url(deleteUrl)
+                    .build();
+
+            try (Response deleteResponse = okHttpClient.newCall(deleteRequest).execute()) {
+                if (deleteResponse.isSuccessful()) {
+                    LOGGER.debug("Deleted comment ID: {}", comment.get("id").asInt());
+                } else {
+                    LOGGER.debug("Failed to delete comment ID: {}", comment.get("id").asInt());
+                }
+            }
+        }
+    }
+
     private void deleteOldSummarizeComments() throws IOException {
         String apiUrl = format("https://api.bitbucket.org/2.0/repositories/%s/%s/pullrequests/%s/comments", bitbucketConfiguration.getProject(), bitbucketConfiguration.getRepository(), prNumber);
 
@@ -247,23 +268,7 @@ public class BitbucketCloudClient implements ALMClient {
 
                 if (comments != null && comments.isArray()) {
                     for (JsonNode comment : comments) {
-                        JsonNode content = comment.path("content").path("raw");
-                        if (content.asText().contains(AIClient.AI_SUMMARIZE_MARKER)) {
-                            String deleteUrl = comment.path("links").path("self").path("href").asText();
-
-                            Request deleteRequest = new Request.Builder()
-                                    .delete()
-                                    .url(deleteUrl)
-                                    .build();
-
-                            try (Response deleteResponse = okHttpClient.newCall(deleteRequest).execute()) {
-                                if (deleteResponse.isSuccessful()) {
-                                    LOGGER.debug("Deleted comment ID: {}", comment.get("id").asInt());
-                                } else {
-                                    LOGGER.debug("Failed to delete comment ID: {}", comment.get("id").asInt());
-                                }
-                            }
-                        }
+                        deleteComment(comment);
                     }
                 }
 

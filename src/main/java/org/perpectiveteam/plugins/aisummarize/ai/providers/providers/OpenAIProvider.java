@@ -7,8 +7,6 @@ import java.net.URL;
 
 import org.perpectiveteam.plugins.aisummarize.ai.providers.AIProvider;
 import org.perpectiveteam.plugins.aisummarize.config.SummarizeConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,7 +14,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class OpenAIProvider implements AIProvider {
-    private static final Logger LOG = LoggerFactory.getLogger(OpenAIProvider.class);
     private static final String PROVIDER_NAME = "openai";
     private final String apiUrl;
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
@@ -76,7 +73,6 @@ public class OpenAIProvider implements AIProvider {
             return response.get("choices").get(0).get("message").get("content").asText();
 
         } catch (Exception e) {
-            LOG.error("Error communicating with OpenAI", e);
             throw new AiProviderException(String.format("Error communicating with AI Provider: %s", e.getMessage()));
         }
     }

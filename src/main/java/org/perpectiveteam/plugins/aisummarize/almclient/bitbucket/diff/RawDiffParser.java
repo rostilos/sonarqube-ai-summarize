@@ -19,7 +19,7 @@ public class RawDiffParser {
             if (line.startsWith("diff --git") ) {
                 // Save previous diff
                 if (currentFile != null) {
-                    currentFile.changes = patchBuilder.toString();
+                    currentFile.setChanges(patchBuilder.toString());
                     fileDiffs.add(currentFile);
                 }
 
@@ -27,11 +27,11 @@ public class RawDiffParser {
                 patchBuilder.setLength(0);
                 currentFile = new FileDiff();
                 String[] parts = line.split(" ");
-                currentFile.filePath = parts[2].substring(2);
-            } else if(currentFile != null && currentFile.diffType == null){
+                currentFile.setFilePath(parts[2].substring(2));
+            } else if(currentFile != null && currentFile.getDiffType() == null){
                 Optional<FileDiff.DiffType> optionalDiffType = getDiffTypeFromFileLine(line);
                 if (optionalDiffType.isPresent()) {
-                    currentFile.diffType = optionalDiffType.get();
+                    currentFile.setDiffType(optionalDiffType.get());
                 }
             }
 
@@ -40,7 +40,7 @@ public class RawDiffParser {
             }
         }
         if (currentFile != null) {
-            currentFile.changes = patchBuilder.toString();
+            currentFile.setChanges(patchBuilder.toString());
             fileDiffs.add(currentFile);
         }
         return fileDiffs;

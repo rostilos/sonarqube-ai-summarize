@@ -19,6 +19,7 @@ public class OpenRouterProvider extends OpenAIProvider {
         return PROVIDER_NAME;
     }
 
+    @Override
     protected String getDefaultApiUrl() {
         return API_URL;
     }

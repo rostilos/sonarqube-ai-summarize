@@ -10,6 +10,7 @@ import org.perpectiveteam.plugins.aisummarize.almclient.github.comment.GithubPRC
 import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import java.util.Optional;
 public class GitHubClient implements ALMClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubClient.class);
-    private static final String GH_API_ERR_MESSAGE = "Error fetching file content from GitHub";
+    private static final String GH_API_ERR_MESSAGE = "An error occurred while accessing the github API";
     private static final MediaType APPLICATION_JSON_MEDIA_TYPE = MediaType.get("application/json");
     private final int fileLimit;
     private final String repoOwner;
@@ -43,7 +44,7 @@ public class GitHubClient implements ALMClient {
 
     @Override
     public List<FileDiff> fetchPullRequestFilesDiff() throws IOException {
-        List<FileDiff> fileDiffs = new ArrayList<>();
+        List<FileDiff> fileDiffs;
 
         String apiUrl = String.format("https://api.github.com/repos/%s/%s/pulls/%s/files", repoOwner, repoName, prNumber);
 
@@ -60,52 +61,51 @@ public class GitHubClient implements ALMClient {
 
         try (Response response = okHttpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                String errorBody = response.body() != null ? response.body().string() : "Unknown error";
+                String errorBody = response.body() != null ? response.body().string() : GH_API_ERR_MESSAGE;
                 LOG.error("GitHub API error ({}): {}", response.code(), errorBody);
                 throw new GithubClientException("GitHub API error (" + response.code() + "): " + errorBody);
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(response.body().string());
-
-            int fileCount = 0;
-            for (JsonNode fileNode : root) {
-                if (fileLimit > 0 && fileCount >= fileLimit) {
-                    LOG.info("Reached file limit of {}. Skipping remaining files.", fileLimit);
-                    break;
-                }
-
-                FileDiff fileDiff = new FileDiff();
-                fileDiff.filePath = fileNode.get("filename").asText();
-
-                String status = fileNode.get("status").asText();
-                FileDiff.DiffType diffType = getDiffTypeFromResponseData(status, fileDiff.filePath);
-                if (diffType == null) {
-                    continue;
-                }
-                fileDiff.diffType = diffType;
-
-                if (fileDiff.diffType == FileDiff.DiffType.REMOVED) {
-                    LOG.info("Skipping deleted file: {}", fileDiff.filePath);
-                    continue;
-                }
-
-                fileDiff.changes = fileNode.get("patch") != null ? fileNode.get("patch").asText() : null;
-                fileDiff.sha = fileNode.get("sha").asText();
-
-                if (fileDiff.diffType == FileDiff.DiffType.ADDED) {
-                    fileDiff.rawContent = "There is no previous version, probably a new file";
-                } else {
-                    fileDiff.rawContent = fetchFileContent(targetBranch.get(), fileDiff.filePath);
-                }
-                fileDiffs.add(fileDiff);
-                fileCount++;
-            }
+            JsonNode responseBody = mapper.readTree(response.body().string());
+            fileDiffs = buildFileDiffListFromResponse(responseBody, targetBranch.get());
         } catch (Exception e) {
-            LOG.error("Error fetching PR diff from GitHub", e);
             throw new IOException("Error fetching PR diff from GitHub", e);
         }
 
+        return fileDiffs;
+    }
+
+    private List<FileDiff> buildFileDiffListFromResponse(JsonNode responseBody, String targetBranch) {
+        List<FileDiff> fileDiffs = new ArrayList<>();
+        int fileCount = 0;
+        for (JsonNode fileNode : responseBody) {
+            if (fileLimit > 0 && fileCount >= fileLimit) {
+                LOG.info("Reached file limit of {}. Skipping remaining files.", fileLimit);
+                break;
+            }
+
+            FileDiff fileDiff = new FileDiff();
+            fileDiff.setFilePath(fileNode.get("filename").asText());
+
+            String status = fileNode.get("status").asText();
+            FileDiff.DiffType diffType = getDiffTypeFromResponseData(status, fileDiff.getFilePath());
+            if (diffType == null || diffType == FileDiff.DiffType.REMOVED) {
+                continue;
+            }
+            fileDiff.setDiffType(diffType);
+            fileDiff.setChanges(fileNode.get("patch") != null ? fileNode.get("patch").asText() : null);
+            fileDiff.setSha(fileNode.get("sha").asText());
+
+            if (fileDiff.getDiffType() == FileDiff.DiffType.ADDED) {
+                fileDiff.setRawContent("There is no previous version, probably a new file");
+            } else {
+                String rawFileContentFromGithub = fetchFileContent(targetBranch, fileDiff.getFilePath());
+                fileDiff.setRawContent(rawFileContentFromGithub);
+            }
+            fileDiffs.add(fileDiff);
+            fileCount++;
+        }
         return fileDiffs;
     }
 
@@ -147,7 +147,6 @@ public class GitHubClient implements ALMClient {
                 return new String(java.util.Base64.getDecoder().decode(clean), StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
-            LOG.error(GH_API_ERR_MESSAGE, e);
             throw new GithubClientException(GH_API_ERR_MESSAGE + e.getMessage());
         }
     }
@@ -209,7 +208,7 @@ public class GitHubClient implements ALMClient {
         LOG.info("Post summarize comment on github: {}", apiUrl);
 
         try (Response response = okHttpClient.newCall(request).execute()) {
-            if(!response.isSuccessful()) {
+            if (!response.isSuccessful()) {
                 String error = Optional.ofNullable(response.body()).map(b -> {
                     try {
                         return b.string();
@@ -250,7 +249,7 @@ public class GitHubClient implements ALMClient {
 
         try (Response response = okHttpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                String errorBody = response.body() != null ? response.body().string() : "Unknown error";
+                String errorBody = response.body() != null ? response.body().string() : GH_API_ERR_MESSAGE;
                 LOG.error("GitHub API error fetching comments ({}): {}", response.code(), errorBody);
                 throw new IOException("GitHub API error fetching comments (" + response.code() + "): " + errorBody);
             }
@@ -269,8 +268,7 @@ public class GitHubClient implements ALMClient {
                 }
             }
         } catch (Exception e) {
-            LOG.error("Error fetching comments from GitHub", e);
-            throw new IOException("Error fetching comments from GitHub", e);
+            throw new GithubClientException(String.format("Error fetching comments from GitHub %s", e.getMessage()));
         }
 
         return aiSummarizeComments;
@@ -287,7 +285,7 @@ public class GitHubClient implements ALMClient {
 
         try (Response response = okHttpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                String errorBody = response.body() != null ? response.body().string() : "Unknown error";
+                String errorBody = response.body() != null ? response.body().string() : GH_API_ERR_MESSAGE;
                 LOG.error("GitHub API error deleting comment {} ({}): {}", commentId, response.code(), errorBody);
                 throw new IOException("GitHub API error deleting comment " + commentId + " (" + response.code() + "): " + errorBody);
             }
