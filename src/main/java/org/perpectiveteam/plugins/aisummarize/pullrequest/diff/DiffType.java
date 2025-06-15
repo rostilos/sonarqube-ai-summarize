@@ -1,4 +1,4 @@
-package org.perpectiveteam.plugins.aisummarize.pullrequest.prdto;
+package org.perpectiveteam.plugins.aisummarize.pullrequest.diff;
 
 public enum DiffType {
     ADDED,

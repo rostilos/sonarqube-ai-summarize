@@ -33,17 +33,23 @@ public class PostProjectAnalysisSummarize implements PostProjectAnalysisTask {
     public void finished(Context context) {
         LOGGER.info("PostJobInScanner.finished method called");
         ProjectAnalysis projectAnalysis = context.getProjectAnalysis();
+        SummarizeConfig.setProjectAnalysisContext(projectAnalysis);
 
-        //TODO: refactor this later!!!!!!!!
-        //An object should not be “pre-initialized” because there is a high probability of forgetting about it later.
-        //Not critical for alpha
-        SummarizeConfig.setProjectAnalysis(projectAnalysis);
-        if(Boolean.FALSE.equals(aiSummarizeConfig.getIsEnabled())){
+        try {
+            executeAnalysis(projectAnalysis);
+        } finally {
+            SummarizeConfig.clearProjectAnalysisContext();
+        }
+    }
+
+    private void executeAnalysis(ProjectAnalysis projectAnalysis) {
+        if (Boolean.FALSE.equals(aiSummarizeConfig.getIsEnabled())) {
             return;
         }
 
         ProjectAlmSettingDto projectAlmSettingDto;
         Optional<AlmSettingDto> optionalAlmSettingDto;
+
         try (DbSession dbSession = dbClient.openSession(false)) {
             Optional<ProjectAlmSettingDto> optionalProjectAlmSettingDto =
                     dbClient.projectAlmSettingDao().selectByProject(dbSession, projectAnalysis.getProject().getUuid());
@@ -56,23 +62,24 @@ public class PostProjectAnalysisSummarize implements PostProjectAnalysisTask {
             projectAlmSettingDto = optionalProjectAlmSettingDto.get();
             String almSettingUuid = projectAlmSettingDto.getAlmSettingUuid();
             optionalAlmSettingDto = dbClient.almSettingDao().selectByUuid(dbSession, almSettingUuid);
-
         }
 
         if (optionalAlmSettingDto.isEmpty()) {
             LOGGER.warn("The ALM configured for this project could not be found");
             return;
         }
-        AlmSettingDto almSettingDto = optionalAlmSettingDto.get();
 
+        AlmSettingDto almSettingDto = optionalAlmSettingDto.get();
         String currentAlmId = almSettingDto.getAlm().getId();
+
         if (currentAlmId.isEmpty()) {
             LOGGER.info("No alm platform found for this Pull Request");
             return;
         }
 
         try {
-            SummarizeExecutor summarizeExecutor = summarizeExecutorFactory.createExecutor(currentAlmId, almSettingDto, projectAnalysis, projectAlmSettingDto);
+            SummarizeExecutor summarizeExecutor = summarizeExecutorFactory.createExecutor(
+                    currentAlmId, almSettingDto, projectAnalysis, projectAlmSettingDto);
             summarizeExecutor.analyzeAndSummarize();
         } catch (Exception e) {
             LOGGER.error("Error during AI summarization", e);

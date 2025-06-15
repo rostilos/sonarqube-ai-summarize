@@ -26,7 +26,7 @@ It is supposed to add functionality that will allow to additionally analyze the 
 To install the plugin you can take either a compiled binary from the assets of the corresponding releases, or build from source.
 To build a plugin from source, execute this command from the project root directory:
 
-`mvn clean package`
+`./build.sh`
 
 The plugin jar file is generated in the project's `target/` directory.
 
@@ -35,6 +35,7 @@ The plugin jar file is generated in the project's `target/` directory.
 The standard way to install the plugin for regular users is to copy the jar artifact, from the `target/` directory to the `extensions/plugins/` directory of your SonarQube Server installation, then start the server.
 
 It is also mandatory to specify an agent for correct registration of the plugin:
+`<sonar_installation_dir>/conf/sonar.properties` :
 ```
 sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar
 sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar
@@ -107,12 +108,14 @@ The settings themselves can be found in
 
 Among the settings
 <ul>
-    <li>Enable functionality</li>
-    <li>Select AI provider</li>
-    <li>Specify model</li>
-    <li>Specify token</li>
+    <li>Enable/Disable ( project level )</li>
+    <li>Select AI provider ( project level )</li>
+    <li>Specify model ( project level )</li>
+    <li>Specify API token ( project level )</li>
     <li>Prompt template ( optionally ). Only data customization is available before and after the main prompt ( source file + patch ).</li>
     <li>File Limit option - number of files in PR that will be analyzed ( for limitations ) </li>
+    <li>File Max Lines - maximum number of lines in the content or patchdiff file, if the actual value exceeds the value set in the config - the file will be omitted ( source code, if and diff above this value - it will also be omitted )</li>
+    
 </ul>
 
 

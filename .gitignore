@@ -18,3 +18,7 @@ sonar-example-plugin.iml
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+#gradle
+/temp_sonarqube_download
+/lib

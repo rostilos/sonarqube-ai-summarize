@@ -1,6 +1,6 @@
 package org.perpectiveteam.plugins.aisummarize.almclient.bitbucket.diff;
 
-import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.diff.FileDiff;
 
 import java.util.ArrayList;
 import java.util.List;

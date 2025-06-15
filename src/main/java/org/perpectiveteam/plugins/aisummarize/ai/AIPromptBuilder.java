@@ -5,7 +5,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.perpectiveteam.plugins.aisummarize.config.SummarizeConfig;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.PullRequest;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.diff.FileDiff;
 import org.sonar.api.ce.ComputeEngineSide;
 import org.sonar.api.server.ServerSide;
 import org.slf4j.Logger;
@@ -23,13 +24,21 @@ public class AIPromptBuilder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AIPromptBuilder.class);
 
-    public String buildPrompt(List<FileDiff> fileDiffs) {
+    public String buildPrompt(PullRequest pullRequest) {
+        List<FileDiff> fileDiffs = pullRequest.getDiff().getFiles();
         ParsedTemplate parsed = parseTemplate(aiSummarizeConfig);
         LOGGER.info("Building AI prompt for {} files", fileDiffs.size());
         StringBuilder sb = new StringBuilder();
+        /* prompt intro info ( from settings ) */
         sb.append(parsed.intro);
         sb.append(DELIMITER);
 
+        /* PR info */
+        sb.append(String.format("Title: %s %n", pullRequest.getTitle()));
+        sb.append(String.format("Description: %s %n", pullRequest.getDescription()));
+        sb.append(DELIMITER);
+
+        /* PR diff */
         int validFileCount = 0;
         for (FileDiff fileDiff : fileDiffs) {
             if (fileDiff.getRawContent() == null || fileDiff.getFilePath().isEmpty() || fileDiff.getRawContent().isEmpty()) {
@@ -61,6 +70,7 @@ public class AIPromptBuilder {
 
         LOGGER.info("Included {} valid files in the prompt", validFileCount);
         sb.append(DELIMITER);
+        /* prompt after info ( from settings ) */
         sb.append(parsed.after);
         return sb.toString();
     }

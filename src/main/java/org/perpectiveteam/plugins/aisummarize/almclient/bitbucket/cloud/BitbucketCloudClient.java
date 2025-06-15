@@ -11,7 +11,7 @@ import org.perpectiveteam.plugins.aisummarize.almclient.bitbucket.BitbucketConfi
 import org.perpectiveteam.plugins.aisummarize.almclient.bitbucket.cloud.comment.BitbucketSummarizeComment;
 import org.perpectiveteam.plugins.aisummarize.almclient.bitbucket.cloud.comment.BitbucketCommentContent;
 import org.perpectiveteam.plugins.aisummarize.almclient.bitbucket.diff.RawDiffParser;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.diff.FileDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +26,7 @@ public class BitbucketCloudClient implements ALMClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketCloudClient.class);
     private static final MediaType APPLICATION_JSON_MEDIA_TYPE = MediaType.get("application/json");
+    private JsonNode pullRequestJsonCache = null;
     private final int fileLimit;
     private final String appId;
     private final String almRepo;
@@ -80,28 +81,6 @@ public class BitbucketCloudClient implements ALMClient {
     }
 
     @Override
-    public void postSummaryResult(String textContent) throws IOException {
-        deleteOldSummarizeComments();
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        BitbucketCommentContent commentContent = new BitbucketCommentContent(textContent);
-        BitbucketSummarizeComment summarizeReport = createSummarizeComment(commentContent);
-
-        String body = objectMapper.writeValueAsString(summarizeReport);
-        String apiUrl = format("https://api.bitbucket.org/2.0/repositories/%s/%s/pullrequests/%s/comments", bitbucketConfiguration.getProject(), bitbucketConfiguration.getRepository(), prNumber);
-        Request req = new Request.Builder()
-                .post(RequestBody.create(body, APPLICATION_JSON_MEDIA_TYPE))
-                .url(apiUrl)
-                .build();
-
-        LOGGER.info("Create report on bitbucket cloud: {}", apiUrl);
-
-        try (Response response = okHttpClient.newCall(req).execute()) {
-            validate(response);
-        }
-    }
-
-    @Override
     public List<FileDiff> fetchPullRequestFilesDiff() throws IOException {
         String apiUrl = String.format(
                 "https://api.bitbucket.org/2.0/repositories/%s/%s/pullrequests/%s/diff",
@@ -142,40 +121,6 @@ public class BitbucketCloudClient implements ALMClient {
             }
         }
         return fileDiffs;
-    }
-
-    private String getTargetBranch() throws IOException {
-        String apiUrl = String.format(
-                "https://api.bitbucket.org/2.0/repositories/%s/%s/pullrequests/%s",
-                appId, almRepo, prNumber
-        );
-
-        Request req = new Request.Builder()
-                .get()
-                .url(apiUrl)
-                .build();
-
-        try (Response response = okHttpClient.newCall(req).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected response code: " + response.code());
-            }
-
-            try (ResponseBody responseBody = response.body()) {
-                if (responseBody == null) {
-                    throw new IOException("Empty response body");
-                }
-
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode root = mapper.readTree(responseBody.string());
-
-                JsonNode nameNode = root.path("destination").path("branch").path("name");
-                if (nameNode.isMissingNode()) {
-                    throw new IOException("Missing 'destination.branch.name' in response");
-                }
-
-                return nameNode.asText();
-            }
-        }
     }
 
     private String fetchFileContent(String branch, String filePath) {
@@ -229,6 +174,91 @@ public class BitbucketCloudClient implements ALMClient {
         }
     }
 
+    private JsonNode getPullRequestJson() throws IOException {
+        if (pullRequestJsonCache != null) {
+            return pullRequestJsonCache;
+        }
+
+        String apiUrl = String.format(
+                "https://api.bitbucket.org/2.0/repositories/%s/%s/pullrequests/%s",
+                appId, almRepo, prNumber
+        );
+
+        Request req = new Request.Builder()
+                .get()
+                .url(apiUrl)
+                .build();
+
+        try (Response response = okHttpClient.newCall(req).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected response code: " + response.code());
+            }
+
+            try (ResponseBody responseBody = response.body()) {
+                if (responseBody == null) {
+                    throw new IOException("Empty response body");
+                }
+
+                ObjectMapper mapper = new ObjectMapper();
+                pullRequestJsonCache = mapper.readTree(responseBody.string());
+                return pullRequestJsonCache;
+            }
+        }
+    }
+
+    private String getTargetBranch() throws IOException {
+        JsonNode root = getPullRequestJson();
+        JsonNode nameNode = root.path("destination").path("branch").path("name");
+        if (nameNode.isMissingNode()) {
+            throw new IOException("Missing 'destination.branch.name' in response");
+        }
+        return nameNode.asText();
+    }
+
+    @Override
+    public String getPullRequestTitle() throws IOException {
+        JsonNode root = getPullRequestJson();
+
+        JsonNode titleNode = root.path("title");
+        if (titleNode.isMissingNode()) {
+            throw new IOException("Missing 'title' in response");
+        }
+        return titleNode.asText();
+    }
+
+    @Override
+    public String getPullRequestDescription() throws IOException {
+        JsonNode root = getPullRequestJson();
+
+        JsonNode descriptionNode = root.path("description");
+        if (descriptionNode.isMissingNode() || descriptionNode.isNull()) {
+            return "";
+        }
+        return descriptionNode.asText();
+    }
+
+    @Override
+    public void postSummaryResult(String textContent) throws IOException {
+        deleteOldSummarizeComments();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        BitbucketCommentContent commentContent = new BitbucketCommentContent(textContent);
+        BitbucketSummarizeComment summarizeReport = createSummarizeComment(commentContent);
+
+        String body = objectMapper.writeValueAsString(summarizeReport);
+        String apiUrl = format("https://api.bitbucket.org/2.0/repositories/%s/%s/pullrequests/%s/comments", bitbucketConfiguration.getProject(), bitbucketConfiguration.getRepository(), prNumber);
+        Request req = new Request.Builder()
+                .post(RequestBody.create(body, APPLICATION_JSON_MEDIA_TYPE))
+                .url(apiUrl)
+                .build();
+
+        LOGGER.info("Create report on bitbucket cloud: {}", apiUrl);
+
+        try (Response response = okHttpClient.newCall(req).execute()) {
+            validate(response);
+        }
+    }
+
     private void deleteComment(JsonNode comment) throws IOException {
         JsonNode content = comment.path("content").path("raw");
         if (content.asText().contains(AIClient.AI_SUMMARIZE_MARKER)) {
@@ -277,4 +307,5 @@ public class BitbucketCloudClient implements ALMClient {
             }
         }
     }
+
 }
