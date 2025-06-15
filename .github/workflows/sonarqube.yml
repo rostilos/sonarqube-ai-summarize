@@ -1,25 +1,38 @@
+name: SonarQube Application Analysis
+
 on:
   push:
     branches:
       - main
   pull_request:
-      branches: [main]
-      types: [opened, synchronize, reopened]
+    branches: [main]
+    types: [ opened, synchronize, reopened ]
 
-name: SonarQube Analyze
 jobs:
-  sonarqube:
+  build_and_analyze:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@v5.1.0
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-    - uses: sonarsource/sonarqube-quality-gate-action@master
-      timeout-minutes: 5
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Make plugin build script executable
+        run: chmod +x build.sh
+
+      - name: Run SonarQube Plugin Builder Script
+        run: ./build.sh
+
+      - name: SonarQube Analysis
+        run: |
+          mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=rostilos_sonarqube-ai-summarize_a06026ba-1f94-41cb-bf39-08ac610f3efe \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.java.binaries=target/classes
