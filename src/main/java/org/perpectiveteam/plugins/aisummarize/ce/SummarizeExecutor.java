@@ -3,9 +3,9 @@ package org.perpectiveteam.plugins.aisummarize.ce;
 import org.perpectiveteam.plugins.aisummarize.ai.AIClient;
 import org.perpectiveteam.plugins.aisummarize.ai.AIPromptBuilder;
 import org.perpectiveteam.plugins.aisummarize.config.SummarizeConfig;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.PullRequestDiffFetcher;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.PullRequest;
 import org.perpectiveteam.plugins.aisummarize.almclient.ALMClient;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.PullRequestDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.PullRequestFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,12 +28,12 @@ public class SummarizeExecutor {
     }
 
     public void analyzeAndSummarize() throws IOException {
-        PullRequestDiff pullRequestDiff = new PullRequestDiffFetcher(almClient)
-                .fetchDiff();
+        PullRequest pullRequest = new PullRequestFactory(almClient).createPullRequest();
+
         try {
             LOGGER.info("Starting AI summarization");
 
-            String prompt = promptBuilder.buildPrompt(pullRequestDiff.getFiles());
+            String prompt = promptBuilder.buildPrompt(pullRequest);
 
             AIClient aiClient = new AIClient(aiSummarizeConfig);
             LOGGER.info("Using AI provider: {}", aiClient.getProviderName());

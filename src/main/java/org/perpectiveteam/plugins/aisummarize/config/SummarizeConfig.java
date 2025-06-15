@@ -12,7 +12,7 @@ import java.util.Optional;
 @ComputeEngineSide
 public class SummarizeConfig {
     public static final String IS_ENABLED = "ai.summarize.enabled";
-    public static final String AI_CLIENT_API_KEY = "ai.summarize.openai.apikey";
+    public static final String AI_CLIENT_API_KEY = "ai.summarize.token";
     public static final String FILE_LIMIT = "ai.summarize.file.limit";
     public static final String FILE_MAX_LINES = "ai.summarize.file_max_lines";
     public static final String AI_PROVIDER = "ai.summarize.ai.provider";

@@ -2,7 +2,7 @@ package org.perpectiveteam.plugins.aisummarize.classloader;
 
 import org.junit.jupiter.api.Test;
 
-public class CECompatibleElevatedClassLoaderFactoryTest {
+class CECompatibleElevatedClassLoaderFactoryTest {
 
     @Test
     void testPlaceholder() {
