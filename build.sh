@@ -57,6 +57,10 @@ else
 fi
 
 if [ ${JAR_ACQUIRED} -eq 1 ]; then
+    if [ ${SKIP_BUILD} -eq 1 ]; then
+      echo "--- Skip Building SonarQube Plugin ---"
+      exit 0
+    fi
     echo ""
     echo "--- Building SonarQube Plugin ---"
     echo "Navigating to plugin directory: ${SONARQUBE_PLUGIN_DIR}"
@@ -65,11 +69,10 @@ if [ ${JAR_ACQUIRED} -eq 1 ]; then
         exit 1
     fi
 
-    cd "${SONARQUBE_PLUGIN_DIR}" || { echo "ERROR: Failed to change directory to '${SONARQUBE_PLUGIN_DIR}'."; exit 1; }
 
+    cd "${SONARQUBE_PLUGIN_DIR}" || { echo "ERROR: Failed to change directory to '${SONARQUBE_PLUGIN_DIR}'."; exit 1; }
     echo "Running 'mvn clean package' for the plugin..."
     mvn clean package || { echo "ERROR: Maven build failed in '${SONARQUBE_PLUGIN_DIR}'."; exit 1; }
-
     echo "--- SonarQube Plugin Build Complete ---"
 else
     echo "Maven build skipped because the SonarQube application JAR could not be acquired."
