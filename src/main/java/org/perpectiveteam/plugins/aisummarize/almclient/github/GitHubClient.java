@@ -91,19 +91,21 @@ public class GitHubClient implements ALMClient {
 
             String status = fileNode.get("status").asText();
             FileDiff.DiffType diffType = getDiffTypeFromResponseData(status, fileDiff.getFilePath());
-            if (diffType == null || diffType == FileDiff.DiffType.REMOVED) {
-                continue;
-            }
             fileDiff.setDiffType(diffType);
-            fileDiff.setChanges(fileNode.get("patch") != null ? fileNode.get("patch").asText() : null);
-            fileDiff.setSha(fileNode.get("sha").asText());
 
-            if (fileDiff.getDiffType() == FileDiff.DiffType.ADDED) {
+            if (diffType == null || diffType == FileDiff.DiffType.REMOVED) {
+                fileDiff.setRawContent("Removed file");
+            } else if (fileDiff.getDiffType() == FileDiff.DiffType.ADDED) {
                 fileDiff.setRawContent("There is no previous version, probably a new file");
+            } else if (fileDiff.getDiffType() == FileDiff.DiffType.RENAMED) {
+                fileDiff.setRawContent(String.format("renamed from %s", fileNode.get("previous_filename")));
             } else {
                 String rawFileContentFromGithub = fetchFileContent(targetBranch, fileDiff.getFilePath());
                 fileDiff.setRawContent(rawFileContentFromGithub);
             }
+
+            fileDiff.setChanges(fileNode.get("patch") != null ? fileNode.get("patch").asText() : "Removed file");
+            fileDiff.setSha(fileNode.get("sha").asText());
             fileDiffs.add(fileDiff);
             fileCount++;
         }
