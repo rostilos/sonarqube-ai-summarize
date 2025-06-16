@@ -44,8 +44,7 @@ public class SummarizeExecutor {
             almClient.postSummaryResult(summary);
 
         } catch (Exception e) {
-            LOGGER.error("Error during AI summarization", e);
-            throw new SummarizeExecutorException("Error during AI summarization");
+            throw new SummarizeExecutorException(String.format("Error during AI summarization %s", e.getMessage()));
         }
     }
 }
