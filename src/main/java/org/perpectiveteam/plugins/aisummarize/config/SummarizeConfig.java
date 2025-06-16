@@ -12,7 +12,7 @@ import java.util.Optional;
 @ComputeEngineSide
 public class SummarizeConfig {
     public static final String IS_ENABLED = "ai.summarize.enabled";
-    public static final String AI_CLIENT_API_KEY = "ai.summarize.openai.apikey";
+    public static final String AI_CLIENT_API_KEY = "ai.summarize.token";
     public static final String FILE_LIMIT = "ai.summarize.file.limit";
     public static final String FILE_MAX_LINES = "ai.summarize.file_max_lines";
     public static final String AI_PROVIDER = "ai.summarize.ai.provider";
@@ -22,20 +22,27 @@ public class SummarizeConfig {
     public static final String AFTER_REGEXP = "###After###\\s*(.*?)\\s*###After end###";
 
     private static final String DEFAULT_AI_PROVIDER = "openai";
-
     private static final int DEFAULT_FILE_LIMIT = 10;
 
     private final Configuration configuration;
 
-    private static PostProjectAnalysisTask.ProjectAnalysis projectAnalysis;
-
-    //TODO: refactor this later
-    public static void setProjectAnalysis(PostProjectAnalysisTask.ProjectAnalysis currentProjectAnalysis) {
-        projectAnalysis = currentProjectAnalysis;
-    }
+    private static final ThreadLocal<PostProjectAnalysisTask.ProjectAnalysis> PROJECT_ANALYSIS_CONTEXT =
+            new ThreadLocal<>();
 
     public SummarizeConfig(Configuration configuration) {
         this.configuration = configuration;
+    }
+
+    public static void setProjectAnalysisContext(PostProjectAnalysisTask.ProjectAnalysis projectAnalysis) {
+        PROJECT_ANALYSIS_CONTEXT.set(projectAnalysis);
+    }
+
+    public static void clearProjectAnalysisContext() {
+        PROJECT_ANALYSIS_CONTEXT.remove();
+    }
+
+    private PostProjectAnalysisTask.ProjectAnalysis getCurrentProjectAnalysis() {
+        return PROJECT_ANALYSIS_CONTEXT.get();
     }
 
     private String getGlobalAiApiKey() {
@@ -61,18 +68,13 @@ public class SummarizeConfig {
     }
 
     private String getGlobalIsEnabled() {
-        return configuration.get(IS_ENABLED).orElse(
-                "0"
-        );
+        return configuration.get(IS_ENABLED).orElse("0");
     }
 
     private String getGlobalFileMaxLines() {
-        return configuration.get(FILE_MAX_LINES).orElse(
-                "1000"
-        );
+        return configuration.get(FILE_MAX_LINES).orElse("1000");
     }
 
-    // Project-specific configuration methods
     public String getAiApiKey() {
         return getProjectSettingFromProjectAnalysis(AI_CLIENT_API_KEY)
                 .orElse(getGlobalAiApiKey());
@@ -104,21 +106,24 @@ public class SummarizeConfig {
                 .orElse(getGlobalFileMaxLines()));
     }
 
-    public Boolean getIsEnabled(){
+    public Boolean getIsEnabled() {
         return Boolean.valueOf(getProjectSettingFromProjectAnalysis(IS_ENABLED)
                 .orElse(getGlobalIsEnabled()));
     }
 
     private Optional<String> getProjectSettingFromProjectAnalysis(String settingKey) {
-        //TODO: refactor this later
+        PostProjectAnalysisTask.ProjectAnalysis projectAnalysis = getCurrentProjectAnalysis();
         if (projectAnalysis == null) {
-            throw new RuntimeException("The method getters must be accessed after the projectAnalysis is set");
+            return Optional.empty();
         }
         return getScannerProperty(settingKey);
     }
 
     public Optional<String> getScannerProperty(String propertyName) {
-        //TODO: refactor this later
+        PostProjectAnalysisTask.ProjectAnalysis projectAnalysis = getCurrentProjectAnalysis();
+        if (projectAnalysis == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(projectAnalysis.getScannerContext().getProperties().get(propertyName));
     }
 }

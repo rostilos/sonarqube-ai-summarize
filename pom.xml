@@ -5,7 +5,7 @@
   <groupId>org.perpectiveteam.plugins</groupId>
   <artifactId>sonar-ai-summarize</artifactId>
   <packaging>sonar-plugin</packaging>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
 
   <name>SonarQube AI Summarize</name>
   <description>Summarize your PR's with AI and SQ</description>
@@ -15,7 +15,7 @@
     <sonar.apiVersion>11.3.0.2824</sonar.apiVersion>
     <sonar.testingHarnessVersion>10.7.0.96327</sonar.testingHarnessVersion>
     <jdk.min.version>17</jdk.min.version>
-    <sonar.sources>src/main/java,src/main/js</sonar.sources>
+    <sonar.sources>src/main/java</sonar.sources>
     <sonar.requiresDb>true</sonar.requiresDb>
   </properties>
 

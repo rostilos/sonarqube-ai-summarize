@@ -21,6 +21,7 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 import org.perpectiveteam.plugins.aisummarize.almclient.ALMClientFactoryDelegate;
+import org.perpectiveteam.plugins.aisummarize.almclient.HttpClientBuilderFactory;
 import org.perpectiveteam.plugins.aisummarize.utils.PullRequestData;
 import org.sonar.api.ce.ComputeEngineSide;
 import org.sonar.api.ce.posttask.PostProjectAnalysisTask.ProjectAnalysis;
@@ -39,20 +40,19 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
     private final Clock clock;
     private final Supplier<GitHubBuilder> gitHubBuilderSupplier;
     private final Settings settings;
+    private final HttpClientBuilderFactory httpClientBuilderFactory;
+
 
     @Autowired
-    public GitHubClientFactory(Clock clock, Settings settings) {
-        this(clock, settings, GitHubBuilder::new);
-    }
-
-    GitHubClientFactory(
+    public GitHubClientFactory(
             Clock clock,
             Settings settings,
-            Supplier<GitHubBuilder> gitHubBuilderSupplier
+            HttpClientBuilderFactory httpClientBuilderFactory
     ) {
         this.clock = clock;
         this.settings = settings;
-        this.gitHubBuilderSupplier = gitHubBuilderSupplier;
+        this.gitHubBuilderSupplier = GitHubBuilder::new;
+        this.httpClientBuilderFactory = httpClientBuilderFactory;
     }
 
     @Override
@@ -147,7 +147,8 @@ public class GitHubClientFactory implements ALMClientFactoryDelegate {
     }
 
     private OkHttpGitHubConnector createConnector() {
-        return new OkHttpGitHubConnector(new OkHttpClient());
+        OkHttpClient client = httpClientBuilderFactory.createClientBuilder().build();
+        return new OkHttpGitHubConnector(client);
     }
 
     private RepositoryCoordinates parseRepositoryPath(String path) {

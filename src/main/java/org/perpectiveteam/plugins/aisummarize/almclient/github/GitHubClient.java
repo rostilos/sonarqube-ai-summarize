@@ -7,7 +7,7 @@ import org.json.JSONObject;
 import org.perpectiveteam.plugins.aisummarize.ai.AIClient;
 import org.perpectiveteam.plugins.aisummarize.almclient.ALMClient;
 import org.perpectiveteam.plugins.aisummarize.almclient.github.comment.GithubPRComment;
-import org.perpectiveteam.plugins.aisummarize.pullrequest.prdto.FileDiff;
+import org.perpectiveteam.plugins.aisummarize.pullrequest.diff.FileDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +22,7 @@ public class GitHubClient implements ALMClient {
     private static final Logger LOG = LoggerFactory.getLogger(GitHubClient.class);
     private static final String GH_API_ERR_MESSAGE = "An error occurred while accessing the github API";
     private static final MediaType APPLICATION_JSON_MEDIA_TYPE = MediaType.get("application/json");
+    private JsonNode pullRequestJsonCache = null;
     private final int fileLimit;
     private final String repoOwner;
     private final String repoName;
@@ -53,7 +54,7 @@ public class GitHubClient implements ALMClient {
                 .url(apiUrl)
                 .build();
 
-        Optional<String> targetBranch = getTargetBranch(prNumber);
+        Optional<String> targetBranch = getTargetBranch();
         if (targetBranch.isEmpty()) {
             LOG.error("Error fetching pull request info, target branch");
             throw new GithubClientException("Error fetching pull request info, target branch");
@@ -90,19 +91,21 @@ public class GitHubClient implements ALMClient {
 
             String status = fileNode.get("status").asText();
             FileDiff.DiffType diffType = getDiffTypeFromResponseData(status, fileDiff.getFilePath());
-            if (diffType == null || diffType == FileDiff.DiffType.REMOVED) {
-                continue;
-            }
             fileDiff.setDiffType(diffType);
-            fileDiff.setChanges(fileNode.get("patch") != null ? fileNode.get("patch").asText() : null);
-            fileDiff.setSha(fileNode.get("sha").asText());
 
-            if (fileDiff.getDiffType() == FileDiff.DiffType.ADDED) {
+            if (diffType == null || diffType == FileDiff.DiffType.REMOVED) {
+                fileDiff.setRawContent("Removed file");
+            } else if (fileDiff.getDiffType() == FileDiff.DiffType.ADDED) {
                 fileDiff.setRawContent("There is no previous version, probably a new file");
+            } else if (fileDiff.getDiffType() == FileDiff.DiffType.RENAMED) {
+                fileDiff.setRawContent(String.format("renamed from %s", fileNode.get("previous_filename")));
             } else {
                 String rawFileContentFromGithub = fetchFileContent(targetBranch, fileDiff.getFilePath());
                 fileDiff.setRawContent(rawFileContentFromGithub);
             }
+
+            fileDiff.setChanges(fileNode.get("patch") != null ? fileNode.get("patch").asText() : "Removed file");
+            fileDiff.setSha(fileNode.get("sha").asText());
             fileDiffs.add(fileDiff);
             fileCount++;
         }
@@ -151,35 +154,16 @@ public class GitHubClient implements ALMClient {
         }
     }
 
-    public Optional<String> getTargetBranch(String prNumber) {
+    public Optional<String> getTargetBranch() {
+        try {
+            JsonNode root = getPullRequestJson();
 
-        String apiUrl = String.format("https://api.github.com/repos/%s/%s/pulls/%s",
-                repoOwner, repoName, prNumber);
-
-        Request request = new Request.Builder()
-                .get()
-                .url(apiUrl)
-                .build();
-        try (Response response = okHttpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected response code: " + response.code());
+            JsonNode nameNode = root.path("base").path("ref");
+            if (nameNode.isMissingNode()) {
+                throw new IOException("Missing 'base.ref' in response");
             }
 
-            try (ResponseBody responseBody = response.body()) {
-                if (responseBody == null) {
-                    throw new IOException("Empty response body");
-                }
-
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode root = mapper.readTree(responseBody.string());
-
-                JsonNode nameNode = root.path("base").path("ref");
-                if (nameNode.isMissingNode()) {
-                    throw new IOException("Missing 'destination.branch.name' in response");
-                }
-
-                return Optional.ofNullable(nameNode.asText());
-            }
+            return Optional.ofNullable(nameNode.asText());
         } catch (IOException e) {
             LOG.error("Error fetching pull request info", e);
             throw new GithubClientException("Error fetching pull request info");
@@ -290,5 +274,47 @@ public class GitHubClient implements ALMClient {
                 throw new IOException("GitHub API error deleting comment " + commentId + " (" + response.code() + "): " + errorBody);
             }
         }
+    }
+
+    private JsonNode getPullRequestJson() throws IOException {
+        if (pullRequestJsonCache != null) {
+            return pullRequestJsonCache;
+        }
+
+        String apiUrl = String.format("https://api.github.com/repos/%s/%s/pulls/%s",
+                repoOwner, repoName, prNumber);
+
+        Request request = new Request.Builder()
+                .get()
+                .url(apiUrl)
+                .build();
+
+        try (Response response = okHttpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected response code: " + response.code());
+            }
+
+            try (ResponseBody responseBody = response.body()) {
+                if (responseBody == null) {
+                    throw new IOException("Empty response body");
+                }
+
+                ObjectMapper mapper = new ObjectMapper();
+                pullRequestJsonCache = mapper.readTree(responseBody.string());
+                return pullRequestJsonCache;
+            }
+        }
+    }
+
+    @Override
+    public String getPullRequestTitle() throws IOException {
+        JsonNode root = getPullRequestJson();
+        return root.path("title").asText("");
+    }
+
+    @Override
+    public String getPullRequestDescription() throws IOException {
+        JsonNode root = getPullRequestJson();
+        return root.path("body").asText("");
     }
 }
