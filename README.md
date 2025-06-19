@@ -11,7 +11,8 @@ It is supposed to add functionality that will allow to additionally analyze the 
 
 - Analyze PR on ALM platform using pre-selected AI providers, with an established template.
 - Report in the form of comments on the results of AI summarize
-  ![1748004073744](https://github.com/user-attachments/assets/23f32985-4b8f-4268-8db0-a5691cc2b207)
+  ![Screenshot_20250619_195431](https://github.com/user-attachments/assets/9dcdf562-c757-4efa-a8d5-df167221aea0)
+
 
 
 <h2>Requirements</h2>
