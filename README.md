@@ -56,6 +56,10 @@ For example, version 1.3.0 was successfully installed on SQ Server v10.7, but wa
             <td>Gitlab</td>
             <td>❌</td>
         </tr>
+        <tr>
+            <td>Azure DevOps</td>
+            <td>❌</td>
+        </tr>
     </tbody>
 </table>
 <table>
