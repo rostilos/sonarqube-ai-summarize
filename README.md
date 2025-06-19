@@ -13,7 +13,66 @@ It is supposed to add functionality that will allow to additionally analyze the 
 - Report in the form of comments on the results of AI summarize
   ![Screenshot_20250619_195431](https://github.com/user-attachments/assets/9dcdf562-c757-4efa-a8d5-df167221aea0)
 
-
+<h2>Compatibility</h2>
+<p>
+Correctness of work on SQ versions lower/higher is not excluded, but is not guaranteed at the moment.
+For example, version 1.3.0 was successfully installed on SQ Server v10.7, but was not fully tested
+</p>
+<table>
+    <thead>
+        <tr>
+        <th>SonarQube Version</th>
+        <th>Plugin Version</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>24.12 - LATEST</td>
+            <td>1.1.0-alpha - 1.3.0-alpha</td>
+        </tr>
+    </tbody>
+</table>
+<table>
+    <thead>
+        <tr>
+        <th>Developer Platforms</th>
+        <th>Supported</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Github</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Bitbucket Cloud</td>
+            <td>✅</td>
+        </tr>
+        <tr>
+            <td>Bitbucket Server</td>
+            <td>❌</td>
+        </tr>
+        <tr>
+            <td>Gitlab</td>
+            <td>❌</td>
+        </tr>
+    </tbody>
+</table>
+<table>
+    <thead>
+        <tr>
+        <th>Supported AI Providers</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Openrouter</td>
+        </tr>
+        <tr>
+            <td>OpenAI</td>
+        </tr>
+    </tbody>
+</table>
 
 <h2>Requirements</h2>
 
@@ -38,8 +97,8 @@ The standard way to install the plugin for regular users is to copy the jar arti
 It is also mandatory to specify an agent for correct registration of the plugin:
 `<sonar_installation_dir>/conf/sonar.properties` :
 ```
-sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar
-sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar
+sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.3.0.jar
+sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.3.0.jar
 ```
 
 <h4>Installation example ( Docker-based )</h4>
@@ -66,7 +125,7 @@ services:
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_extensions:/opt/sonarqube/extensions
       - sonarqube_bundled-plugins:/opt/sonarqube/lib/bundled-plugins
-      - ./sonar-ai-summarize-1.0.0.jar:/opt/sonarqube/extensions/plugins/sonar-ai-summarize-1.0.0.jar
+      - ./sonar-ai-summarize-1.3.0.jar:/opt/sonarqube/extensions/plugins/sonar-ai-summarize-1.3.0.jar
     networks:
       sonar_network:
   db:
@@ -116,7 +175,6 @@ Among the settings
     <li>Prompt template ( optionally ). Only data customization is available before and after the main prompt ( source file + patch ).</li>
     <li>File Limit option - number of files in PR that will be analyzed ( for limitations ) </li>
     <li>File Max Lines - maximum number of lines in the content or patchdiff file, if the actual value exceeds the value set in the config - the file will be omitted ( source code, if and diff above this value - it will also be omitted )</li>
-    
 </ul>
 
 
