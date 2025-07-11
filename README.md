@@ -101,8 +101,8 @@ The standard way to install the plugin for regular users is to copy the jar arti
 It is also mandatory to specify an agent for correct registration of the plugin:
 `<sonar_installation_dir>/conf/sonar.properties` :
 ```
-sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.3.0.jar
-sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.3.0.jar
+sonar.web.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.2.0.jar
+sonar.ce.javaAdditionalOpts=-javaagent:./extensions/plugins/sonar-ai-summarize-1.2.0.jar
 ```
 
 <h4>Installation example ( Docker-based )</h4>
@@ -121,15 +121,15 @@ services:
       SONAR_JDBC_URL: jdbc:postgresql://db:5432/sonar
       SONAR_JDBC_USERNAME: sonar
       SONAR_JDBC_PASSWORD: sonar
-      SONAR_WEB_JAVAADDITIONALOPTS: "-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar"
-      SONAR_CE_JAVAADDITIONALOPTS: "-javaagent:./extensions/plugins/sonar-ai-summarize-1.0.0.jar"
+      SONAR_WEB_JAVAADDITIONALOPTS: "-javaagent:./extensions/plugins/sonar-ai-summarize-1.2.0.jar"
+      SONAR_CE_JAVAADDITIONALOPTS: "-javaagent:./extensions/plugins/sonar-ai-summarize-1.2.0.jar"
     volumes:
       - sonarqube_conf:/opt/sonarqube/conf
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_extensions:/opt/sonarqube/extensions
       - sonarqube_bundled-plugins:/opt/sonarqube/lib/bundled-plugins
-      - ./sonar-ai-summarize-1.3.0.jar:/opt/sonarqube/extensions/plugins/sonar-ai-summarize-1.3.0.jar
+      - ./sonar-ai-summarize-1.2.0.jar:/opt/sonarqube/extensions/plugins/sonar-ai-summarize-1.2.0.jar
     networks:
       sonar_network:
   db:
