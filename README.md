@@ -16,7 +16,7 @@ It is supposed to add functionality that will allow to additionally analyze the 
 <h2>Compatibility</h2>
 <p>
 Correctness of work on SQ versions lower/higher is not excluded, but is not guaranteed at the moment.
-For example, version 1.3.0 was successfully installed on SQ Server v10.7, but was not fully tested
+For example, version 1.2.0 was successfully installed on SQ Server v10.7, but was not fully tested
 </p>
 <table>
     <thead>
@@ -28,7 +28,7 @@ For example, version 1.3.0 was successfully installed on SQ Server v10.7, but wa
     <tbody>
         <tr>
             <td>24.12 - LATEST</td>
-            <td>1.1.0-alpha - 1.3.0-alpha</td>
+            <td>1.1.0-alpha - 1.2.0-alpha</td>
         </tr>
     </tbody>
 </table>
